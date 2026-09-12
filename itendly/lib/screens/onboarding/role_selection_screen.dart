@@ -25,7 +25,7 @@ class RoleSelectionScreen extends StatelessWidget {
               const SizedBox(height: 64),
 
               // Section label
-              const Text(
+              Text(
                 'Choose your role to continue',
                 style: AppTextStyles.bodyMedium.copyWith(
                   letterSpacing: 0.3,
@@ -55,7 +55,7 @@ class RoleSelectionScreen extends StatelessWidget {
               const SizedBox(height: 48),
 
               // Footer
-              Text(
+              const Text(
                 'ATTENDLY v1.0 — Prototype',
                 style: AppTextStyles.caption,
               ),
