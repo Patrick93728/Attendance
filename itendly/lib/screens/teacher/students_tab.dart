@@ -84,8 +84,7 @@ class StudentsTab extends StatelessWidget {
           ? EmptyState(
               icon: Icons.group_outlined,
               title: 'No Students',
-              description:
-                  'No students enrolled yet.\nTap + to add a student.',
+              description: 'No students enrolled yet.\nTap + to add a student.',
               actionLabel: 'Add Student',
               onAction: () => _navigateToAdd(context),
             )

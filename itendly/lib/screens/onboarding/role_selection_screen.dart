@@ -40,8 +40,7 @@ class RoleSelectionScreen extends StatelessWidget {
                 icon: Icons.school_outlined,
                 label: 'STUDENT',
                 description: 'Scan QR to record your attendance',
-                onTap: () =>
-                    Navigator.pushNamed(context, '/student/identity'),
+                onTap: () => Navigator.pushNamed(context, '/student/identity'),
               ),
 
               const SizedBox(height: 16),
@@ -51,15 +50,14 @@ class RoleSelectionScreen extends StatelessWidget {
                 icon: Icons.person_outline,
                 label: 'TEACHER',
                 description: 'Manage students and generate QR codes',
-                onTap: () =>
-                    Navigator.pushNamed(context, '/teacher/login'),
+                onTap: () => Navigator.pushNamed(context, '/teacher/login'),
               ),
 
               const SizedBox(height: 48),
 
               // Footer
               Text(
-                'ITENDLY v1.0 — Prototype',
+                'ATTENDLY v1.0 — Prototype',
                 style: AppTextStyles.caption,
               ),
 

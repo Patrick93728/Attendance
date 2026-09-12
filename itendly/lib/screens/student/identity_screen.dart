@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/mock_database_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_logo.dart';
@@ -39,10 +40,13 @@ class _StudentIdentityScreenState extends State<StudentIdentityScreen> {
   bool _validate() {
     bool valid = true;
     setState(() {
-      _surnameError = _surnameCtrl.text.trim().isEmpty ? 'Surname is required' : null;
-      _firstnameError = _firstnameCtrl.text.trim().isEmpty ? 'First name is required' : null;
-      _middlenameError =
-          _middlenameCtrl.text.trim().isEmpty ? 'Middle name is required' : null;
+      _surnameError =
+          _surnameCtrl.text.trim().isEmpty ? 'Surname is required' : null;
+      _firstnameError =
+          _firstnameCtrl.text.trim().isEmpty ? 'First name is required' : null;
+      _middlenameError = _middlenameCtrl.text.trim().isEmpty
+          ? 'Middle name is required'
+          : null;
     });
     if (_surnameCtrl.text.trim().isEmpty) valid = false;
     if (_firstnameCtrl.text.trim().isEmpty) valid = false;
@@ -71,6 +75,10 @@ class _StudentIdentityScreenState extends State<StudentIdentityScreen> {
     if (!mounted) return;
 
     if (student != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('saved_student_id', student.id);
+
+      if (!mounted) return;
       Navigator.pushReplacementNamed(
         context,
         '/student/home',

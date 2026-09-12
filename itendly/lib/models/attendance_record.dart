@@ -44,7 +44,8 @@ class AttendanceRecord {
       'id': id,
       'studentId': studentId,
       'sessionId': sessionId,
-      'date': '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+      'date':
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
       'timeIn': timeIn?.toIso8601String(),
       'status': status,
     };
@@ -57,5 +58,6 @@ class AttendanceRecord {
   int get hashCode => id.hashCode;
 
   @override
-  String toString() => 'AttendanceRecord($id, student=$studentId, status=$status)';
+  String toString() =>
+      'AttendanceRecord($id, student=$studentId, status=$status)';
 }

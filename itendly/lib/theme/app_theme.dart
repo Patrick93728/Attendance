@@ -261,7 +261,8 @@ class AppTheme {
           borderRadius: BorderRadius.circular(AppRadius.medium),
           borderSide: const BorderSide(color: AppColors.error, width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         labelStyle: AppTextStyles.bodyMedium,
         hintStyle: const TextStyle(
           fontSize: 14,
@@ -340,7 +341,8 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceVariant,
         selectedColor: AppColors.primaryContainer,
-        labelStyle: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
+        labelStyle:
+            AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
         side: BorderSide.none,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.full),
