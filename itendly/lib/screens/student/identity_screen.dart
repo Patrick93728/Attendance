@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/device_session_service.dart';
-import '../../services/mock_database_service.dart';
+import '../../services/fruitask_database_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/app_buttons.dart';
@@ -64,7 +64,7 @@ class _StudentIdentityScreenState extends State<StudentIdentityScreen> {
 
     if (!mounted) return;
 
-    final db = context.read<MockDatabaseService>();
+    final db = context.read<FruitaskDatabaseService>();
     final student = db.findStudentByName(
       _surnameCtrl.text,
       _firstnameCtrl.text,

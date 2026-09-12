@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/student.dart';
 import '../../models/attendance_record.dart';
-import '../../services/mock_database_service.dart';
+import '../../services/fruitask_database_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/attendance_record_tile.dart';
 import '../../widgets/empty_state.dart';
@@ -30,7 +30,7 @@ class _RecordsTabState extends State<RecordsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final db = context.watch<MockDatabaseService>();
+    final db = context.watch<FruitaskDatabaseService>();
     final history = db.getStudentAttendanceHistory(widget.student.id);
     final summary = db.getStudentAttendanceSummary(widget.student.id);
     final filtered = _applyFilter(history);
@@ -39,6 +39,15 @@ class _RecordsTabState extends State<RecordsTab> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('My Records'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh from Fruitask',
+            onPressed: () async {
+              await context.read<FruitaskDatabaseService>().initialize();
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
