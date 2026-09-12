@@ -47,8 +47,11 @@ class MockDatabaseService extends ChangeNotifier {
   // Initialization
   // ─────────────────────────────────────────────
 
-  /// Loads all JSON assets into memory. Must be called once before [runApp].
+  /// Loads all JSON assets into memory from the startup screen.
   Future<void> initialize() async {
+    _isLoaded = false;
+    _loadError = null;
+    notifyListeners();
     try {
       final studentsRaw =
           await rootBundle.loadString('assets/data/mock/students.json');
@@ -90,7 +93,7 @@ class MockDatabaseService extends ChangeNotifier {
   // ─────────────────────────────────────────────
 
   /// Looks up a student by exact name match (case-insensitive).
-  /// Middlename is optional — if blank the lookup ignores it.
+  /// All three name fields must match the active student record.
   Student? findStudentByName(
     String surname,
     String firstname,
@@ -105,7 +108,7 @@ class MockDatabaseService extends ChangeNotifier {
         if (!student.active) return false;
         if (student.surname.toUpperCase() != s) return false;
         if (student.firstname.toUpperCase() != f) return false;
-        if (m.isNotEmpty && student.middlename.toUpperCase() != m) {
+        if (student.middlename.toUpperCase() != m) {
           return false;
         }
         return true;
@@ -115,17 +118,48 @@ class MockDatabaseService extends ChangeNotifier {
     }
   }
 
-  void addStudent(Student student) {
-    _students.add(student);
-    notifyListeners();
+  bool isStudentIdAvailable(String studentId, {String? excludingId}) {
+    final normalizedId = studentId.trim().toUpperCase();
+    return !_students.any(
+      (student) =>
+          student.id.toUpperCase() == normalizedId &&
+          student.id != excludingId,
+    );
   }
 
-  void updateStudent(Student updated) {
-    final index = _students.indexWhere((s) => s.id == updated.id);
-    if (index >= 0) {
-      _students[index] = updated;
-      notifyListeners();
+  bool addStudent(Student student) {
+    if (!isStudentIdAvailable(student.id)) return false;
+    _students.add(student);
+    notifyListeners();
+    return true;
+  }
+
+  bool updateStudent(String originalId, Student updated) {
+    final index = _students.indexWhere((s) => s.id == originalId);
+    if (index < 0 ||
+        !isStudentIdAvailable(updated.id, excludingId: originalId)) {
+      return false;
     }
+
+    _students[index] = updated;
+    if (originalId != updated.id) {
+      _attendanceRecords = _attendanceRecords
+          .map(
+            (record) => record.studentId == originalId
+                ? AttendanceRecord(
+                    id: record.id,
+                    studentId: updated.id,
+                    sessionId: record.sessionId,
+                    date: record.date,
+                    timeIn: record.timeIn,
+                    status: record.status,
+                  )
+                : record,
+          )
+          .toList();
+    }
+    notifyListeners();
+    return true;
   }
 
   void deleteStudent(String studentId) {
@@ -245,6 +279,17 @@ class MockDatabaseService extends ChangeNotifier {
     required String sessionId,
     String status = 'present',
   }) {
+    final studentExists =
+        _students.any((student) => student.id == studentId && student.active);
+    if (!studentExists) {
+      throw StateError('Student is not active or does not exist.');
+    }
+    if (validateSession(sessionId) == null) {
+      throw StateError('Attendance session is not active.');
+    }
+    if (getAttendanceForStudentSession(studentId, sessionId) != null) {
+      throw StateError('Attendance has already been recorded.');
+    }
     final now = DateTime.now();
     final record = AttendanceRecord(
       id: _generateAttendanceId(),

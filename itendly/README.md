@@ -1,17 +1,30 @@
-# itendly
+# ITENDLY
 
-A new Flutter project.
+ITENDLY is an Android-first Flutter attendance prototype with student and
+teacher flows, QR attendance sessions, student management, and shared in-memory
+attendance records loaded from bundled JSON fixtures.
 
-## Getting Started
+## Demo access
 
-This project is a starting point for a Flutter application.
+- Teacher email: `teacher@itendly.app`
+- Teacher password: `teacher123`
+- Example student: `MANGANTI / ARDY / TUAZON`
 
-A few resources to get you started if this is your first Flutter project:
+These credentials are strictly for local UI testing. A production version must
+use secure server authentication, hashed passwords, authorization, persistent
+storage, and server-side signed QR/session validation.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Run and verify
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```sh
+flutter pub get
+dart format lib test
+flutter analyze
+flutter test
+flutter run
+```
+
+All mutations are held in memory and reset when the process restarts. QR image
+export is intentionally isolated behind `QrExportService`; the current
+prototype reports that device saving is not yet available instead of claiming
+that a file was written.

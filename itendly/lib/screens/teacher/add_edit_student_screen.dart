@@ -30,6 +30,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
 
   String? _surnameError;
   String? _firstnameError;
+  String? _middlenameError;
   String? _idError;
   bool _isSaving = false;
 
@@ -71,32 +72,43 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
           _surnameCtrl.text.trim().isEmpty ? 'Surname is required' : null;
       _firstnameError =
           _firstnameCtrl.text.trim().isEmpty ? 'First name is required' : null;
+      _middlenameError =
+          _middlenameCtrl.text.trim().isEmpty ? 'Middle name is required' : null;
       _idError =
           _studentIdCtrl.text.trim().isEmpty ? 'Student ID is required' : null;
     });
     if (_surnameCtrl.text.trim().isEmpty) valid = false;
     if (_firstnameCtrl.text.trim().isEmpty) valid = false;
+    if (_middlenameCtrl.text.trim().isEmpty) valid = false;
     if (_studentIdCtrl.text.trim().isEmpty) valid = false;
     return valid;
   }
 
   Future<void> _save() async {
     if (!_validate()) return;
+    final db = context.read<MockDatabaseService>();
+    final studentId = _studentIdCtrl.text.trim().toUpperCase();
+    if (!db.isStudentIdAvailable(
+      studentId,
+      excludingId: widget.existingStudent?.id,
+    )) {
+      setState(() => _idError = 'Student ID is already in use');
+      return;
+    }
     setState(() => _isSaving = true);
 
     await Future.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
 
-    final db = context.read<MockDatabaseService>();
     final student = Student(
-      id: _studentIdCtrl.text.trim(),
+      id: studentId,
       surname: _surnameCtrl.text.trim().toUpperCase(),
       firstname: _firstnameCtrl.text.trim().toUpperCase(),
       middlename: _middlenameCtrl.text.trim().toUpperCase(),
     );
 
     if (widget.isEditing) {
-      db.updateStudent(student);
+      db.updateStudent(widget.existingStudent!.id, student);
     } else {
       db.addStudent(student);
     }
@@ -165,13 +177,15 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
 
               CustomTextField(
                 controller: _middlenameCtrl,
-                label: 'Middle Name (Optional)',
+                label: 'Middle Name',
                 hint: 'e.g. TUAZON',
+                errorText: _middlenameError,
                 textCapitalization: TextCapitalization.characters,
                 textInputAction: TextInputAction.next,
                 focusNode: _middlenameFocus,
                 prefixIcon: const Icon(Icons.drive_file_rename_outline),
                 onEditingComplete: () => _idFocus.requestFocus(),
+                onChanged: (_) => setState(() => _middlenameError = null),
               ),
 
               const SizedBox(height: 16),
@@ -184,8 +198,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                 textInputAction: TextInputAction.done,
                 focusNode: _idFocus,
                 prefixIcon: const Icon(Icons.tag),
-                readOnly: widget.isEditing,
-                enabled: !widget.isEditing,
+                textCapitalization: TextCapitalization.characters,
                 onEditingComplete: _save,
                 onChanged: (_) => setState(() => _idError = null),
               ),
@@ -194,7 +207,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
-                    'Student ID cannot be changed after creation.',
+                    'Changing the ID also updates this student\'s attendance records.',
                     style: AppTextStyles.caption,
                   ),
                 ),

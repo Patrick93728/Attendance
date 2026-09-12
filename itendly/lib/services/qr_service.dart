@@ -22,6 +22,7 @@ class QrService {
       if (data['sessionId'] == null) return null;
       if (data['teacherId'] == null) return null;
       if (data['expiresAt'] == null) return null;
+      if (data['status'] != 'active') return null;
 
       return QrPayload(
         type: data['type'] as String,

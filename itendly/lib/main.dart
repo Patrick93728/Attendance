@@ -22,9 +22,7 @@ void main() async {
     ),
   );
 
-  // Initialize mock database before running the app
   final db = MockDatabaseService();
-  await db.initialize();
 
   runApp(
     ChangeNotifierProvider.value(

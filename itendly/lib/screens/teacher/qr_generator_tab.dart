@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/teacher.dart';
 import '../../models/attendance_session.dart';
 import '../../services/mock_database_service.dart';
+import '../../services/qr_export_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/app_buttons.dart';
@@ -24,6 +25,8 @@ class QrGeneratorTab extends StatefulWidget {
 class _QrGeneratorTabState extends State<QrGeneratorTab> {
   bool _isGenerating = false;
   bool _isEnding = false;
+  bool _isSaving = false;
+  final _qrExportService = const QrExportService();
 
   Future<void> _generateQr() async {
     // If active session exists, confirm replacement
@@ -80,12 +83,14 @@ class _QrGeneratorTabState extends State<QrGeneratorTab> {
     );
   }
 
-  void _saveQr() {
-    // PRODUCTION NOTE: Implement actual file saving with permission handling.
-    // Use packages like image_gallery_saver or path_provider for real save.
+  Future<void> _saveQr(AttendanceSession session) async {
+    setState(() => _isSaving = true);
+    final result = await _qrExportService.saveQrImage(session.toQrPayload());
+    if (!mounted) return;
+    setState(() => _isSaving = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('QR code saved successfully.'),
+      SnackBar(
+        content: Text(result.message),
       ),
     );
   }
@@ -177,7 +182,8 @@ class _QrGeneratorTabState extends State<QrGeneratorTab> {
                 SecondaryButton(
                   label: 'SAVE QR',
                   icon: Icons.download_outlined,
-                  onPressed: _saveQr,
+                  isLoading: _isSaving,
+                  onPressed: () => _saveQr(session),
                 ),
                 const SizedBox(height: 12),
                 SecondaryButton(

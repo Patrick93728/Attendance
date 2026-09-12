@@ -102,6 +102,15 @@ class _ScanTabState extends State<ScanTab> {
       _showResultDialog(_ScanResult.noSession);
       return;
     }
+    final payloadMatchesSession =
+        payload.teacherId == session.teacherId &&
+        payload.createdAt.isAtSameMomentAs(session.createdAt) &&
+        payload.expiresAt.isAtSameMomentAs(session.expiresAt) &&
+        !payload.isExpiredByTime;
+    if (!payloadMatchesSession) {
+      _showResultDialog(_ScanResult.invalid);
+      return;
+    }
 
     // Check for duplicate attendance
     final existing = db.getAttendanceForStudentSession(
@@ -118,10 +127,24 @@ class _ScanTabState extends State<ScanTab> {
     await Future.delayed(const Duration(milliseconds: 500));
 
     if (!mounted) return;
-    final record = db.recordAttendance(
-      studentId: widget.student.id,
-      sessionId: session.id,
-    );
+    AttendanceRecord record;
+    try {
+      record = db.recordAttendance(
+        studentId: widget.student.id,
+        sessionId: session.id,
+      );
+    } on StateError {
+      setState(() => _isSaving = false);
+      final duplicate = db.getAttendanceForStudentSession(
+            widget.student.id,
+            session.id,
+          ) !=
+          null;
+      _showResultDialog(
+        duplicate ? _ScanResult.duplicate : _ScanResult.noSession,
+      );
+      return;
+    }
 
     setState(() {
       _todayRecord = record;
@@ -190,7 +213,14 @@ class _ScanTabState extends State<ScanTab> {
   Widget build(BuildContext context) {
     // Listen for DB changes (e.g., session created/ended)
     final db = context.watch<MockDatabaseService>();
-    final hasActiveSession = db.activeSession != null;
+    final activeSession = db.activeSession;
+    final hasActiveSession = activeSession != null;
+    final activeSessionRecord = activeSession == null
+        ? null
+        : db.getAttendanceForStudentSession(
+            widget.student.id,
+            activeSession.id,
+          );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -291,21 +321,24 @@ class _ScanTabState extends State<ScanTab> {
                         const SizedBox(height: 24),
                       ],
 
-                    // Scan QR button — only shown if no record yet
-                    if (_todayRecord == null) ...
+                    // Keep scanning available so duplicate scans receive clear
+                    // feedback and a newly generated session can be attended.
+                    if (hasActiveSession) ...
                       [
                         PrimaryButton(
-                          label: 'SCAN QR CODE',
+                          label: activeSessionRecord == null
+                              ? 'SCAN QR CODE'
+                              : 'SCAN AGAIN',
                           icon: Icons.qr_code_scanner,
                           isLoading: _isScanning,
-                          onPressed: hasActiveSession ? _openScanner : null,
+                          onPressed: _openScanner,
                         ),
                         const SizedBox(height: 12),
                         Center(
                           child: Text(
-                            hasActiveSession
+                            activeSessionRecord == null
                                 ? 'Point your camera at the teacher\'s QR code'
-                                : 'Scanning is disabled — no active session',
+                                : 'Scanning this session again will be rejected as a duplicate',
                             style: AppTextStyles.bodySmall,
                             textAlign: TextAlign.center,
                           ),
@@ -445,6 +478,10 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
                   MobileScanner(
                     controller: _controller,
                     onDetect: _onDetect,
+                    errorBuilder: (context, error) => _ScannerErrorState(
+                      isPermissionDenied: error.errorCode ==
+                          MobileScannerErrorCode.permissionDenied,
+                    ),
                   ),
                   // Overlay frame
                   Center(
@@ -477,6 +514,47 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ScannerErrorState extends StatelessWidget {
+  final bool isPermissionDenied;
+
+  const _ScannerErrorState({required this.isPermissionDenied});
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Colors.black,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.no_photography_outlined,
+                  color: Colors.white, size: 52),
+              const SizedBox(height: 16),
+              Text(
+                isPermissionDenied
+                    ? 'Camera Permission Denied'
+                    : 'Scanner Unavailable',
+                style: AppTextStyles.titleMedium.copyWith(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isPermissionDenied
+                    ? 'Allow camera access in Android settings, then try again.'
+                    : 'The camera could not be started. Close the scanner and try again.',
+                style: AppTextStyles.bodySmall.copyWith(color: Colors.white70),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

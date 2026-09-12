@@ -23,6 +23,7 @@ class _StudentIdentityScreenState extends State<StudentIdentityScreen> {
 
   String? _surnameError;
   String? _firstnameError;
+  String? _middlenameError;
   bool _isLoading = false;
 
   @override
@@ -40,9 +41,12 @@ class _StudentIdentityScreenState extends State<StudentIdentityScreen> {
     setState(() {
       _surnameError = _surnameCtrl.text.trim().isEmpty ? 'Surname is required' : null;
       _firstnameError = _firstnameCtrl.text.trim().isEmpty ? 'First name is required' : null;
+      _middlenameError =
+          _middlenameCtrl.text.trim().isEmpty ? 'Middle name is required' : null;
     });
     if (_surnameCtrl.text.trim().isEmpty) valid = false;
     if (_firstnameCtrl.text.trim().isEmpty) valid = false;
+    if (_middlenameCtrl.text.trim().isEmpty) valid = false;
     return valid;
   }
 
@@ -177,13 +181,19 @@ class _StudentIdentityScreenState extends State<StudentIdentityScreen> {
               // Middle name
               CustomTextField(
                 controller: _middlenameCtrl,
-                label: 'Middle Name (Optional)',
+                label: 'Middle Name',
                 hint: 'e.g. TUAZON',
+                errorText: _middlenameError,
                 textCapitalization: TextCapitalization.characters,
                 textInputAction: TextInputAction.done,
                 focusNode: _middlenameFocus,
                 prefixIcon: const Icon(Icons.drive_file_rename_outline),
                 onEditingComplete: _submit,
+                onChanged: (_) {
+                  if (_middlenameError != null) {
+                    setState(() => _middlenameError = null);
+                  }
+                },
               ),
 
               const SizedBox(height: 12),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'models/student.dart';
 import 'models/teacher.dart';
 import 'screens/onboarding/role_selection_screen.dart';
+import 'screens/onboarding/startup_screen.dart';
 import 'screens/student/identity_screen.dart';
 import 'screens/student/student_home_screen.dart';
 import 'screens/teacher/teacher_login_screen.dart';
@@ -26,6 +27,8 @@ class ItendlyApp extends StatelessWidget {
   Route<dynamic>? _generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case '/':
+        return _fadeRoute(const StartupScreen(), settings);
+
       case '/role-selection':
         return _fadeRoute(const RoleSelectionScreen(), settings);
 
