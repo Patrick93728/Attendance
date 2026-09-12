@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../services/device_session_service.dart';
 import '../../services/mock_database_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_logo.dart';
@@ -18,6 +19,7 @@ class TeacherLoginScreen extends StatefulWidget {
 }
 
 class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
+  final _sessionService = const DeviceSessionService();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _passwordFocus = FocusNode();
@@ -27,6 +29,7 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
   String? _loginError;
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _rememberMe = false;
 
   @override
   void dispose() {
@@ -40,11 +43,14 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
     bool valid = true;
     setState(() {
       _loginError = null;
-      _emailError = _emailCtrl.text.trim().isEmpty ? 'Email is required' : null;
+      final email = _emailCtrl.text.trim();
+      _emailError = email.isEmpty
+          ? 'Email is required'
+          : (!email.contains('@') ? 'Enter a valid email address' : null);
       _passwordError =
           _passwordCtrl.text.isEmpty ? 'Password is required' : null;
     });
-    if (_emailCtrl.text.trim().isEmpty || _passwordCtrl.text.isEmpty) {
+    if (_emailError != null || _passwordCtrl.text.isEmpty) {
       valid = false;
     }
     return valid;
@@ -61,19 +67,29 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
     final db = context.read<MockDatabaseService>();
     final teacher = db.loginTeacher(_emailCtrl.text.trim(), _passwordCtrl.text);
 
-    setState(() => _isLoading = false);
-    if (!mounted) return;
-
     if (teacher != null) {
-      Navigator.pushReplacementNamed(
+      try {
+        if (_rememberMe) {
+          await _sessionService.rememberTeacher(teacher.id);
+        } else {
+          await _sessionService.clearTeacher();
+        }
+      } catch (error) {
+        debugPrint('Unable to persist teacher session: $error');
+      }
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      Navigator.pushNamedAndRemoveUntil(
         context,
         '/teacher/home',
+        (_) => false,
         arguments: teacher,
       );
     } else {
-      setState(
-        () => _loginError = 'Invalid email or password. Please try again.',
-      );
+      setState(() {
+        _isLoading = false;
+        _loginError = 'Invalid email or password. Please try again.';
+      });
     }
   }
 
@@ -174,7 +190,20 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
                 }),
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 12),
+
+              CheckboxListTile(
+                value: _rememberMe,
+                onChanged: _isLoading
+                    ? null
+                    : (value) => setState(() => _rememberMe = value ?? false),
+                title: const Text('Remember me'),
+                subtitle: const Text('Keep this teacher signed in on this device'),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
+
+              const SizedBox(height: 16),
 
               PrimaryButton(
                 label: 'LOGIN',

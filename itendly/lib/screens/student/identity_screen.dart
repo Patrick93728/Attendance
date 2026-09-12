@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/device_session_service.dart';
 import '../../services/mock_database_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_logo.dart';
@@ -16,6 +16,7 @@ class StudentIdentityScreen extends StatefulWidget {
 }
 
 class _StudentIdentityScreenState extends State<StudentIdentityScreen> {
+  final _sessionService = const DeviceSessionService();
   final _surnameCtrl = TextEditingController();
   final _firstnameCtrl = TextEditingController();
   final _middlenameCtrl = TextEditingController();
@@ -75,13 +76,17 @@ class _StudentIdentityScreenState extends State<StudentIdentityScreen> {
     if (!mounted) return;
 
     if (student != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('saved_student_id', student.id);
+      try {
+        await _sessionService.rememberStudent(student.id);
+      } catch (error) {
+        debugPrint('Unable to remember student device: $error');
+      }
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(
+      Navigator.pushNamedAndRemoveUntil(
         context,
         '/student/home',
+        (_) => false,
         arguments: student,
       );
     } else {
@@ -130,14 +135,14 @@ class _StudentIdentityScreenState extends State<StudentIdentityScreen> {
               const Center(child: AppLogo(size: 60, showSubtitle: false)),
               const SizedBox(height: 24),
 
-              Center(
+              const Center(
                 child: Text(
                   'Enter Your Name',
                   style: AppTextStyles.headlineMedium,
                 ),
               ),
               const SizedBox(height: 8),
-              Center(
+              const Center(
                 child: Text(
                   'Use your registered name exactly as enrolled',
                   style: AppTextStyles.bodyMedium,

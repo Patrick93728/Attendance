@@ -118,6 +118,16 @@ class MockDatabaseService extends ChangeNotifier {
     }
   }
 
+  Student? findStudentById(String studentId) {
+    try {
+      return _students.firstWhere(
+        (student) => student.id == studentId && student.active,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   bool isStudentIdAvailable(String studentId, {String? excludingId}) {
     final normalizedId = studentId.trim().toUpperCase();
     return !_students.any(
@@ -190,6 +200,16 @@ class MockDatabaseService extends ChangeNotifier {
             t.active &&
             t.email.toLowerCase() == email.toLowerCase().trim() &&
             t.password == password,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Teacher? findTeacherById(String teacherId) {
+    try {
+      return _teachers.firstWhere(
+        (teacher) => teacher.id == teacherId && teacher.active,
       );
     } catch (_) {
       return null;

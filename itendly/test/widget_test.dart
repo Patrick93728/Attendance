@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:itendly/models/student.dart';
-import 'package:itendly/screens/onboarding/role_selection_screen.dart';
-import 'package:itendly/services/mock_database_service.dart';
-import 'package:itendly/services/qr_service.dart';
-import 'package:itendly/widgets/custom_text_field.dart';
+import 'package:attendly/models/student.dart';
+import 'package:attendly/screens/onboarding/role_selection_screen.dart';
+import 'package:attendly/services/device_session_service.dart';
+import 'package:attendly/services/mock_database_service.dart';
+import 'package:attendly/services/qr_service.dart';
+import 'package:attendly/widgets/custom_text_field.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -61,6 +62,20 @@ void main() {
     expect(payload?.sessionId, 'S-1');
   });
 
+  test('device session remembers students and clears teacher logout', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    const sessions = DeviceSessionService();
+
+    await sessions.rememberStudent('STU-001');
+    expect(await sessions.getStudentId(), 'STU-001');
+
+    await sessions.rememberTeacher('TCH-001');
+    expect(await sessions.getTeacherId(), 'TCH-001');
+    await sessions.clearTeacher();
+    expect(await sessions.getTeacherId(), isNull);
+    expect(await sessions.getStudentId(), 'STU-001');
+  });
+
   group('mock attendance repository', () {
     late MockDatabaseService db;
 
@@ -78,6 +93,11 @@ void main() {
       expect(first.status, 'ended');
       expect(db.validateSession(first.id), isNull);
       expect(db.validateSession(second.id), same(second));
+    });
+
+    test('teacher login accepts only the mock credentials', () {
+      expect(db.loginTeacher('teacher@itendly.app', 'teacher123'), isNotNull);
+      expect(db.loginTeacher('teacher@itendly.app', 'wrong'), isNull);
     });
 
     test('one student can attend new sessions but not duplicate one', () {

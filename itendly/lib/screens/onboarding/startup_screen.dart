@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../services/device_session_service.dart';
 import '../../services/mock_database_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_logo.dart';
@@ -17,6 +17,7 @@ class StartupScreen extends StatefulWidget {
 
 class _StartupScreenState extends State<StartupScreen> {
   bool _navigationScheduled = false;
+  final _sessionService = const DeviceSessionService();
 
   @override
   void initState() {
@@ -36,21 +37,50 @@ class _StartupScreenState extends State<StartupScreen> {
       _navigationScheduled = true;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
-        
-        final prefs = await SharedPreferences.getInstance();
-        final savedStudentId = prefs.getString('saved_student_id');
-        
-        if (!mounted) return;
-        
-        if (savedStudentId != null) {
-          try {
-            final student = db.students.firstWhere((s) => s.id == savedStudentId);
-            Navigator.pushReplacementNamed(context, '/student/home', arguments: student);
-            return;
-          } catch (_) {}
+
+        try {
+          final savedStudentId = await _sessionService.getStudentId();
+          if (!mounted) return;
+          if (savedStudentId != null) {
+            final student = db.findStudentById(savedStudentId);
+            if (student != null) {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/student/home',
+                (_) => false,
+                arguments: student,
+              );
+              return;
+            }
+            await _sessionService.clearInvalidStudent();
+          }
+
+          final savedTeacherId = await _sessionService.getTeacherId();
+          if (!mounted) return;
+          if (savedTeacherId != null) {
+            final teacher = db.findTeacherById(savedTeacherId);
+            if (teacher != null) {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/teacher/home',
+                (_) => false,
+                arguments: teacher,
+              );
+              return;
+            }
+            await _sessionService.clearTeacher();
+          }
+        } catch (error) {
+          debugPrint('Unable to restore device session: $error');
         }
-        
-        Navigator.pushReplacementNamed(context, '/role-selection');
+
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/role-selection',
+            (_) => false,
+          );
+        }
       });
     }
 
@@ -76,8 +106,10 @@ class _StartupScreenState extends State<StartupScreen> {
                       const Icon(Icons.cloud_off_outlined,
                           color: AppColors.error, size: 56),
                       const SizedBox(height: 16),
-                      Text('Unable to Start',
-                          style: AppTextStyles.headlineMedium),
+                      const Text(
+                        'Unable to Start',
+                        style: AppTextStyles.headlineMedium,
+                      ),
                       const SizedBox(height: 8),
                       const Text(
                         'The local attendance data could not be loaded. Please try again.',
