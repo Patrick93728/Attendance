@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'app.dart';
-import 'services/mock_database_service.dart';
+import 'services/fruitask_database_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,11 +22,9 @@ void main() async {
     ),
   );
 
-  final db = MockDatabaseService();
-
   runApp(
-    ChangeNotifierProvider.value(
-      value: db,
+    ChangeNotifierProvider(
+      create: (_) => FruitaskDatabaseService.fromEnvironment(),
       child: const AttendlyApp(),
     ),
   );

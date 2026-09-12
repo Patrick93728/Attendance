@@ -48,7 +48,7 @@ class QrPayload {
 
   /// The status embedded in the QR at generation time.
   /// NOTE: Do NOT use this for validation — always check the live session
-  /// status from [MockDatabaseService.validateSession].
+  /// status from the configured attendance repository.
   final String embeddedStatus;
 
   const QrPayload({

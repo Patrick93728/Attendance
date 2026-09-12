@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/teacher.dart';
 import '../../models/attendance_session.dart';
-import '../../services/mock_database_service.dart';
+import '../../services/fruitask_database_service.dart';
 import '../../services/qr_export_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_logo.dart';
@@ -36,7 +36,7 @@ class _QrGeneratorTabState extends State<QrGeneratorTab> {
 
   Future<void> _generateQr() async {
     // If active session exists, confirm replacement
-    final db = context.read<MockDatabaseService>();
+    final db = context.read<FruitaskDatabaseService>();
     if (db.activeSession != null) {
       final confirmed = await ConfirmationDialog.show(
         context: context,
@@ -51,16 +51,20 @@ class _QrGeneratorTabState extends State<QrGeneratorTab> {
     }
 
     setState(() => _isGenerating = true);
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-
-    context.read<MockDatabaseService>().createSession(widget.teacher.id);
-    setState(() => _isGenerating = false);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('New attendance session created')),
-    );
+    try {
+      await db.createSession(widget.teacher.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('New attendance session created')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to create session: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _isGenerating = false);
+    }
   }
 
   Future<void> _endSession(AttendanceSession session) async {
@@ -77,16 +81,20 @@ class _QrGeneratorTabState extends State<QrGeneratorTab> {
     if (confirmed != true) return;
 
     setState(() => _isEnding = true);
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (!mounted) return;
-
-    context.read<MockDatabaseService>().endSession(session.id);
-    setState(() => _isEnding = false);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Session ended. QR is now invalid.')),
-    );
+    try {
+      await context.read<FruitaskDatabaseService>().endSession(session.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Session ended. QR is now invalid.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to end session: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _isEnding = false);
+    }
   }
 
   Future<void> _saveQr() async {
@@ -103,7 +111,7 @@ class _QrGeneratorTabState extends State<QrGeneratorTab> {
 
   @override
   Widget build(BuildContext context) {
-    final db = context.watch<MockDatabaseService>();
+    final db = context.watch<FruitaskDatabaseService>();
     final session = db.activeSession;
 
     return Scaffold(
@@ -111,6 +119,17 @@ class _QrGeneratorTabState extends State<QrGeneratorTab> {
       appBar: AppBar(
         title: const AppLogo(size: 28, showSubtitle: false),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh from Fruitask',
+            onPressed: _isGenerating || _isEnding
+                ? null
+                : () async {
+                    await context
+                        .read<FruitaskDatabaseService>()
+                        .initialize();
+                  },
+          ),
           IconButton(
             icon: const Icon(Icons.logout_outlined),
             tooltip: 'Sign out',

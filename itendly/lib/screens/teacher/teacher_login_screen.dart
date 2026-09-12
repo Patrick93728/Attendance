@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/device_session_service.dart';
-import '../../services/mock_database_service.dart';
+import '../../services/fruitask_database_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/custom_text_field.dart';
 
 /// Teacher login screen with email + password.
-///
-/// Demo credentials: teacher@ATTENDLY.app / teacher123
-/// PRODUCTION NOTE: Use secure server-side authentication.
 class TeacherLoginScreen extends StatefulWidget {
   const TeacherLoginScreen({super.key});
 
@@ -64,7 +61,7 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
 
-    final db = context.read<MockDatabaseService>();
+    final db = context.read<FruitaskDatabaseService>();
     final teacher = db.loginTeacher(_emailCtrl.text.trim(), _passwordCtrl.text);
 
     if (teacher != null) {
@@ -210,38 +207,6 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
                 isLoading: _isLoading,
                 icon: Icons.login,
                 onPressed: _login,
-              ),
-
-              const SizedBox(height: 24),
-
-              // Demo hint
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryContainer.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(AppRadius.medium),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Demo Credentials',
-                      style: AppTextStyles.labelMedium
-                          .copyWith(color: AppColors.primary),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text('Email: teacher@ATTENDLY.app',
-                        style: AppTextStyles.bodySmall),
-                    const Text('Password: teacher123',
-                        style: AppTextStyles.bodySmall),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'For UI testing only — not secure for production.',
-                      style: AppTextStyles.caption,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
               ),
 
               const SizedBox(height: 24),

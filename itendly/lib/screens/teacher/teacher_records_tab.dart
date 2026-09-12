@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/teacher.dart';
-import '../../services/mock_database_service.dart';
+import '../../services/fruitask_database_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/attendance_record_tile.dart';
 import '../../widgets/empty_state.dart';
@@ -52,7 +52,7 @@ class _TeacherRecordsTabState extends State<TeacherRecordsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final db = context.watch<MockDatabaseService>();
+    final db = context.watch<FruitaskDatabaseService>();
     final records = db.getAttendanceForDate(_selectedDate);
     final students = db.students;
 
@@ -80,6 +80,13 @@ class _TeacherRecordsTabState extends State<TeacherRecordsTab> {
       appBar: AppBar(
         title: const Text('Attendance Records'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh from Fruitask',
+            onPressed: () async {
+              await context.read<FruitaskDatabaseService>().initialize();
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout_outlined),
             tooltip: 'Sign out',

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -5,7 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/student.dart';
 import '../../models/attendance_record.dart';
-import '../../services/mock_database_service.dart';
+import '../../services/fruitask_database_service.dart';
 import '../../services/qr_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_logo.dart';
@@ -38,7 +40,7 @@ class _ScanTabState extends State<ScanTab> {
   }
 
   void _refreshTodayRecord() {
-    final db = context.read<MockDatabaseService>();
+    final db = context.read<FruitaskDatabaseService>();
     final today = DateTime.now();
     final records = db.getAttendanceForDate(today);
     setState(() {
@@ -50,6 +52,18 @@ class _ScanTabState extends State<ScanTab> {
         _todayRecord = null;
       }
     });
+  }
+
+  Future<void> _refreshFromFruitask() async {
+    final db = context.read<FruitaskDatabaseService>();
+    await db.initialize();
+    if (!mounted) return;
+    _refreshTodayRecord();
+    if (db.loadError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(db.loadError!)),
+      );
+    }
   }
 
   String _greeting() {
@@ -89,7 +103,7 @@ class _ScanTabState extends State<ScanTab> {
   }
 
   Future<void> _processScan(String rawValue) async {
-    final db = context.read<MockDatabaseService>();
+    final db = context.read<FruitaskDatabaseService>();
     String? processedSessionId;
     try {
       final payload = QrService.parseQrCode(rawValue);
@@ -128,7 +142,7 @@ class _ScanTabState extends State<ScanTab> {
       await Future.delayed(const Duration(milliseconds: 500));
       if (!mounted) return;
 
-      final record = db.recordAttendance(
+      final record = await db.recordAttendance(
         studentId: widget.student.id,
         sessionId: session.id,
       );
@@ -217,7 +231,7 @@ class _ScanTabState extends State<ScanTab> {
 
   @override
   Widget build(BuildContext context) {
-    final db = context.watch<MockDatabaseService>();
+    final db = context.watch<FruitaskDatabaseService>();
     final activeSession = db.activeSession;
     final hasActiveSession = activeSession != null;
     final activeSessionRecord = activeSession == null
@@ -244,7 +258,7 @@ class _ScanTabState extends State<ScanTab> {
               ),
             )
           : RefreshIndicator(
-              onRefresh: () async => _refreshTodayRecord(),
+              onRefresh: _refreshFromFruitask,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(AppSpacing.horizontal),
@@ -350,7 +364,7 @@ class _ScanTabState extends State<ScanTab> {
 }
 
 // ─────────────────────────────────────────────────────────────
-// QR Scanner Bottom Sheet — fixed for mobile_scanner v5
+// QR Scanner Bottom Sheet
 // ─────────────────────────────────────────────────────────────
 
 class _QrScannerSheet extends StatefulWidget {
@@ -366,54 +380,57 @@ class _QrScannerSheet extends StatefulWidget {
   State<_QrScannerSheet> createState() => _QrScannerSheetState();
 }
 
-class _QrScannerSheetState extends State<_QrScannerSheet>
-    with WidgetsBindingObserver {
-  MobileScannerController? _controller;
+class _QrScannerSheetState extends State<_QrScannerSheet> {
+  late MobileScannerController _controller;
   bool _scanned = false;
   bool _torchOn = false;
+  bool _isRestarting = false;
+  int _scannerGeneration = 0;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _startScanner();
+    _controller = _createController();
   }
 
-  void _startScanner() {
-    _controller = MobileScannerController(
-      // v5: autoStart defaults to true; use these args
-      detectionSpeed: DetectionSpeed.normal,
+  MobileScannerController _createController() {
+    return MobileScannerController(
+      autoStart: true,
+      detectionSpeed: DetectionSpeed.noDuplicates,
       facing: CameraFacing.back,
+      formats: const [BarcodeFormat.qrCode],
       torchEnabled: false,
       returnImage: false,
     );
+  }
+
+  Future<void> _restartScanner() async {
+    if (_isRestarting) return;
+    setState(() => _isRestarting = true);
+
+    try {
+      await _controller.dispose();
+    } catch (error) {
+      debugPrint('Unable to dispose failed scanner: $error');
+    }
+
+    if (!mounted) return;
+    MobileScannerController.resetPlatformSessionOwner();
     setState(() {
+      _controller = _createController();
+      _scannerGeneration++;
+      _scanned = false;
+      _torchOn = false;
       _errorMessage = null;
+      _isRestarting = false;
     });
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_controller == null) return;
-    try {
-      if (state == AppLifecycleState.paused) {
-        _controller?.stop();
-      } else if (state == AppLifecycleState.resumed) {
-        _controller?.start();
-      }
-    } catch (e) {
-      debugPrint('Scanner lifecycle error: $e');
-    }
-  }
-
-  @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    try {
-      _controller?.dispose();
-    } catch (_) {}
     super.dispose();
+    unawaited(_controller.dispose());
   }
 
   void _onDetect(BarcodeCapture capture) {
@@ -421,18 +438,14 @@ class _QrScannerSheetState extends State<_QrScannerSheet>
     final rawValue = capture.barcodes.firstOrNull?.rawValue;
     if (rawValue != null && rawValue.isNotEmpty) {
       _scanned = true;
-      try {
-        _controller?.stop();
-      } catch (_) {}
+      unawaited(_controller.stop());
       widget.onScan(rawValue);
     }
   }
 
   void _toggleTorch() async {
-    final controller = _controller;
-    if (controller == null) return;
     try {
-      await controller.toggleTorch();
+      await _controller.toggleTorch();
       if (mounted) setState(() => _torchOn = !_torchOn);
     } catch (error) {
       debugPrint('Unable to toggle scanner torch: $error');
@@ -440,10 +453,8 @@ class _QrScannerSheetState extends State<_QrScannerSheet>
   }
 
   void _switchCamera() async {
-    final controller = _controller;
-    if (controller == null) return;
     try {
-      await controller.switchCamera();
+      await _controller.switchCamera();
     } catch (error) {
       debugPrint('Unable to switch scanner camera: $error');
     }
@@ -451,7 +462,6 @@ class _QrScannerSheetState extends State<_QrScannerSheet>
 
   @override
   Widget build(BuildContext context) {
-    final controller = _controller;
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: const BoxDecoration(
@@ -508,7 +518,9 @@ class _QrScannerSheetState extends State<_QrScannerSheet>
 
           // Camera preview
           Expanded(
-            child: _errorMessage != null
+            child: _isRestarting
+                ? const Center(child: CircularProgressIndicator())
+                : _errorMessage != null
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
@@ -526,29 +538,29 @@ class _QrScannerSheetState extends State<_QrScannerSheet>
                           ),
                           const SizedBox(height: 20),
                           ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                _scanned = false;
-                                _errorMessage = null;
-                              });
-                              _startScanner();
-                            },
+                            onPressed: _restartScanner,
                             child: const Text('Retry'),
                           ),
                         ],
                       ),
                     ),
                   )
-                : controller == null
-                    ? const Center(child: CircularProgressIndicator())
-                    : ClipRRect(
+                : ClipRRect(
                     child: Stack(
                       children: [
                         // Scanner widget
                         MobileScanner(
-                          controller: controller,
+                          key: ValueKey(_scannerGeneration),
+                          controller: _controller,
+                          useAppLifecycleState: true,
+                          tapToFocus: true,
                           onDetect: _onDetect,
-                          errorBuilder: (context, error, child) {
+                          onDetectError: (error, stackTrace) {
+                            debugPrint(
+                              'Barcode detection error: $error\n$stackTrace',
+                            );
+                          },
+                          errorBuilder: (context, error) {
                             // Handle camera errors gracefully
                             WidgetsBinding.instance
                                 .addPostFrameCallback((_) {

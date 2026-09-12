@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/device_session_service.dart';
-import '../../services/mock_database_service.dart';
+import '../../services/fruitask_database_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/app_buttons.dart';
 
-/// Loads bundled mock data and exposes visible loading and failure states.
+/// Loads Fruitask data and exposes visible loading and failure states.
 class StartupScreen extends StatefulWidget {
   const StartupScreen({super.key});
 
@@ -26,12 +26,12 @@ class _StartupScreenState extends State<StartupScreen> {
   }
 
   Future<void> _load() async {
-    await context.read<MockDatabaseService>().initialize();
+    await context.read<FruitaskDatabaseService>().initialize();
   }
 
   @override
   Widget build(BuildContext context) {
-    final db = context.watch<MockDatabaseService>();
+    final db = context.watch<FruitaskDatabaseService>();
 
     if (db.isLoaded && db.loadError == null && !_navigationScheduled) {
       _navigationScheduled = true;
@@ -112,7 +112,13 @@ class _StartupScreenState extends State<StartupScreen> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'The local attendance data could not be loaded. Please try again.',
+                        'Attendance data could not be loaded from Fruitask. Please check the connection and try again.',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        db.loadError!,
+                        style: AppTextStyles.bodySmall,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),

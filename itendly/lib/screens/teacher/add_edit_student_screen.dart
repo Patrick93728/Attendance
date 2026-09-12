@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/student.dart';
-import '../../services/mock_database_service.dart';
+import '../../services/fruitask_database_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/custom_text_field.dart';
@@ -46,7 +46,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
     } else {
       // Pre-fill next available ID
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        final db = context.read<MockDatabaseService>();
+        final db = context.read<FruitaskDatabaseService>();
         _studentIdCtrl.text = db.generateStudentId();
         setState(() {});
       });
@@ -87,7 +87,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
 
   Future<void> _save() async {
     if (!_validate()) return;
-    final db = context.read<MockDatabaseService>();
+    final db = context.read<FruitaskDatabaseService>();
     final studentId = _studentIdCtrl.text.trim().toUpperCase();
     if (!db.isStudentIdAvailable(
       studentId,
@@ -98,9 +98,6 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
     }
     setState(() => _isSaving = true);
 
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (!mounted) return;
-
     final student = Student(
       id: studentId,
       surname: _surnameCtrl.text.trim().toUpperCase(),
@@ -108,14 +105,27 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
       middlename: _middlenameCtrl.text.trim().toUpperCase(),
     );
 
-    if (widget.isEditing) {
-      db.updateStudent(widget.existingStudent!.id, student);
-    } else {
-      db.addStudent(student);
+    try {
+      final saved = widget.isEditing
+          ? await db.updateStudent(widget.existingStudent!.id, student)
+          : await db.addStudent(student);
+      if (!mounted) return;
+      if (!saved) {
+        setState(() {
+          _isSaving = false;
+          _idError = 'Student could not be saved. Check the Student ID.';
+        });
+        return;
+      }
+      setState(() => _isSaving = false);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to save student: $error')),
+      );
+      return;
     }
-
-    setState(() => _isSaving = false);
-    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

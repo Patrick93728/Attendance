@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/student.dart';
 import '../../models/teacher.dart';
-import '../../services/mock_database_service.dart';
+import '../../services/fruitask_database_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/student_list_tile.dart';
 import '../../widgets/empty_state.dart';
@@ -28,20 +28,34 @@ class StudentsTab extends StatelessWidget {
       context: context,
       title: 'Delete Student?',
       message:
-          'This will remove ${student.displayName} from the current mock data.',
+          'This will remove ${student.displayName} from Fruitask.',
       confirmLabel: 'Delete',
       cancelLabel: 'Cancel',
       isDestructive: true,
       icon: Icons.delete_outline,
     );
     if (confirmed == true && context.mounted) {
-      context.read<MockDatabaseService>().deleteStudent(student.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${student.displayName} deleted'),
-          action: SnackBarAction(label: 'OK', onPressed: () {}),
-        ),
-      );
+      try {
+        final deleted = await context
+            .read<FruitaskDatabaseService>()
+            .deleteStudent(student.id);
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              deleted
+                  ? '${student.displayName} deleted'
+                  : '${student.displayName} could not be found in Fruitask',
+            ),
+            action: SnackBarAction(label: 'OK', onPressed: () {}),
+          ),
+        );
+      } catch (error) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to delete student: $error')),
+        );
+      }
     }
   }
 
@@ -65,7 +79,7 @@ class StudentsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final students = context.watch<MockDatabaseService>().students;
+    final students = context.watch<FruitaskDatabaseService>().students;
 
     return Scaffold(
       backgroundColor: AppColors.background,
