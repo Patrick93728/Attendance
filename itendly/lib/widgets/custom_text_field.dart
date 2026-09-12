@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 
 /// Styled text field consistent with ITENDLY design.
@@ -58,6 +59,9 @@ class CustomTextField extends StatelessWidget {
       maxLines: maxLines,
       readOnly: readOnly,
       enabled: enabled,
+      inputFormatters: textCapitalization == TextCapitalization.characters
+          ? const [UpperCaseTextFormatter()]
+          : null,
       onEditingComplete: onEditingComplete,
       onChanged: onChanged,
       style: AppTextStyles.bodyLarge.copyWith(
@@ -73,6 +77,21 @@ class CustomTextField extends StatelessWidget {
         filled: true,
         fillColor: enabled ? AppColors.surface : AppColors.surfaceVariant,
       ),
+    );
+  }
+}
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  const UpperCaseTextFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(
+      text: newValue.text.toUpperCase(),
+      composing: TextRange.empty,
     );
   }
 }

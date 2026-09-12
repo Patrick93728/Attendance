@@ -58,14 +58,12 @@ class _TeacherRecordsTabState extends State<TeacherRecordsTab> {
     final lateCount = records.where((r) => r.isLate).length;
 
     // Build display list with student names
+    final studentsById = {for (final student in students) student.id: student};
     final displayRecords = records.map((r) {
-      final student = students.firstWhere(
-        (s) => s.id == r.studentId,
-        orElse: () => students.isNotEmpty
-            ? students.first
-            : throw StateError('No students'),
-      );
-      return (record: r, studentName: student.displayName);
+      final student = studentsById[r.studentId];
+      final studentName =
+          student?.displayName ?? 'Deleted student (${r.studentId})';
+      return (record: r, studentName: studentName);
     }).toList()
       ..sort((a, b) => a.studentName.compareTo(b.studentName));
 
@@ -137,23 +135,34 @@ class _TeacherRecordsTabState extends State<TeacherRecordsTab> {
                     horizontal: 16,
                     vertical: 12,
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      _StatChip(
-                          label: 'Present',
-                          count: presentCount,
-                          color: AppColors.successAccent),
-                      const SizedBox(width: 16),
-                      _StatChip(
-                          label: 'Absent',
-                          count: absentCount,
-                          color: AppColors.absent),
-                      const SizedBox(width: 16),
-                      _StatChip(
-                          label: 'Late',
-                          count: lateCount,
-                          color: AppColors.late),
-                      const Spacer(),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StatChip(
+                              label: 'Present',
+                              count: presentCount,
+                              color: AppColors.successAccent,
+                            ),
+                          ),
+                          Expanded(
+                            child: _StatChip(
+                              label: 'Absent',
+                              count: absentCount,
+                              color: AppColors.absent,
+                            ),
+                          ),
+                          Expanded(
+                            child: _StatChip(
+                              label: 'Late',
+                              count: lateCount,
+                              color: AppColors.late,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
                       Text(
                         dateLabel,
                         style: AppTextStyles.bodySmall.copyWith(
