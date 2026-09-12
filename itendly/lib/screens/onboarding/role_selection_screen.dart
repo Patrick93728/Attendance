@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_logo.dart';
-import '../../widgets/app_buttons.dart';
 
 /// First screen — the user chooses STUDENT or TEACHER role.
 class RoleSelectionScreen extends StatelessWidget {
@@ -26,7 +25,7 @@ class RoleSelectionScreen extends StatelessWidget {
               const SizedBox(height: 64),
 
               // Section label
-              Text(
+              const Text(
                 'Choose your role to continue',
                 style: AppTextStyles.bodyMedium.copyWith(
                   letterSpacing: 0.3,

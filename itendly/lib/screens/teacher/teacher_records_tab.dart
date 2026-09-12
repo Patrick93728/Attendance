@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/teacher.dart';
-import '../../models/attendance_record.dart';
 import '../../services/mock_database_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/attendance_record_tile.dart';
@@ -11,8 +10,13 @@ import '../../widgets/empty_state.dart';
 /// Teacher Records Tab — view attendance by today or a selected date.
 class TeacherRecordsTab extends StatefulWidget {
   final Teacher teacher;
+  final VoidCallback onLogout;
 
-  const TeacherRecordsTab({super.key, required this.teacher});
+  const TeacherRecordsTab({
+    super.key,
+    required this.teacher,
+    required this.onLogout,
+  });
 
   @override
   State<TeacherRecordsTab> createState() => _TeacherRecordsTabState();
@@ -79,8 +83,7 @@ class _TeacherRecordsTabState extends State<TeacherRecordsTab> {
           IconButton(
             icon: const Icon(Icons.logout_outlined),
             tooltip: 'Sign out',
-            onPressed: () =>
-                Navigator.pushReplacementNamed(context, '/role-selection'),
+            onPressed: widget.onLogout,
           ),
         ],
       ),

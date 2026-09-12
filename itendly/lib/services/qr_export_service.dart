@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:gal/gal.dart';
 
 /// Result of a QR export request.
@@ -13,16 +13,26 @@ class QrExportResult {
   const QrExportResult({required this.saved, required this.message});
 }
 
-/// Actually generates and saves the QR image to the user's gallery using `gal`.
+/// Captures the rendered QR card and saves it to the public photo gallery.
 class QrExportService {
   const QrExportService();
 
-  Future<QrExportResult> saveQrImage(String qrData) async {
+  Future<QrExportResult> saveQrImage(GlobalKey repaintBoundaryKey) async {
+    File? temporaryFile;
     try {
-      // 1. Ask for permission (Gal handles the dialog internally if needed)
-      final hasAccess = await Gal.hasAccess();
+      await WidgetsBinding.instance.endOfFrame;
+      final renderObject =
+          repaintBoundaryKey.currentContext?.findRenderObject();
+      if (renderObject is! RenderRepaintBoundary) {
+        return const QrExportResult(
+          saved: false,
+          message: 'The QR image is not ready yet. Please try again.',
+        );
+      }
+
+      final hasAccess = await Gal.hasAccess(toAlbum: true);
       if (!hasAccess) {
-        final granted = await Gal.requestAccess();
+        final granted = await Gal.requestAccess(toAlbum: true);
         if (!granted) {
           return const QrExportResult(
             saved: false,
@@ -31,29 +41,9 @@ class QrExportService {
         }
       }
 
-      // 2. Render QR code to an image
-      final painter = QrPainter(
-        data: qrData,
-        version: QrVersions.auto,
-        gapless: true,
-        color: const Color(0xFF0D2E4D),
-        emptyColor: Colors.white,
-      );
-
-      // Create a picture and draw a white background first
-      final pictureRecorder = ui.PictureRecorder();
-      final canvas = Canvas(pictureRecorder);
-      const size = 512.0;
-      final paint = Paint()..color = Colors.white;
-      canvas.drawRect(const Rect.fromLTWH(0, 0, size, size), paint);
-      
-      // Draw the QR
-      painter.paint(canvas, const Size(size, size));
-      final picture = pictureRecorder.endRecording();
-      final image = await picture.toImage(size.toInt(), size.toInt());
-
-      // 3. Convert to bytes
+      final image = await renderObject.toImage(pixelRatio: 3);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      image.dispose();
       if (byteData == null) {
         return const QrExportResult(
           saved: false,
@@ -62,17 +52,17 @@ class QrExportService {
       }
       final bytes = byteData.buffer.asUint8List();
 
-      // 4. Save to temporary file
       final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/ATTENDLY_QR_${DateTime.now().millisecondsSinceEpoch}.png');
-      await file.writeAsBytes(bytes);
+      temporaryFile = File(
+        '${tempDir.path}/ATTENDLY_QR_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      await temporaryFile.writeAsBytes(bytes, flush: true);
 
-      // 5. Save to gallery via Gal
-      await Gal.putImage(file.path);
+      await Gal.putImage(temporaryFile.path, album: 'ATTENDLY');
 
       return const QrExportResult(
         saved: true,
-        message: 'QR code saved to your gallery successfully.',
+        message: 'QR code saved to Pictures in the ATTENDLY album.',
       );
     } catch (e) {
       debugPrint('QR Save Error: $e');
@@ -80,6 +70,14 @@ class QrExportService {
         saved: false,
         message: 'Failed to save QR: ${e.toString()}',
       );
+    } finally {
+      try {
+        if (temporaryFile != null && await temporaryFile.exists()) {
+          await temporaryFile.delete();
+        }
+      } catch (error) {
+        debugPrint('Unable to remove temporary QR image: $error');
+      }
     }
   }
 }

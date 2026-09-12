@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/student.dart';
 import '../../models/attendance_record.dart';
@@ -13,7 +12,7 @@ import '../../widgets/app_logo.dart';
 import '../../widgets/attendance_status_card.dart';
 import '../../widgets/app_buttons.dart';
 
-enum _ScanResult { success, duplicate, invalid, noSession }
+enum _ScanResult { success, duplicate, invalid, noSession, processingError }
 
 /// Student Scan Tab — shows attendance status and QR scanner button.
 class ScanTab extends StatefulWidget {
@@ -91,47 +90,71 @@ class _ScanTabState extends State<ScanTab> {
 
   Future<void> _processScan(String rawValue) async {
     final db = context.read<MockDatabaseService>();
+    String? processedSessionId;
+    try {
+      final payload = QrService.parseQrCode(rawValue);
+      if (payload == null) {
+        _showResultDialog(_ScanResult.invalid);
+        return;
+      }
 
-    // Parse QR
-    final payload = QrService.parseQrCode(rawValue);
-    if (payload == null) {
-      _showResultDialog(_ScanResult.invalid);
-      return;
+      final session = db.validateSession(payload.sessionId);
+      if (session == null) {
+        _showResultDialog(_ScanResult.noSession);
+        return;
+      }
+      processedSessionId = session.id;
+
+      final payloadMatchesSession =
+          payload.teacherId == session.teacherId &&
+          payload.createdAt.isAtSameMomentAs(session.createdAt) &&
+          payload.expiresAt.isAtSameMomentAs(session.expiresAt) &&
+          !payload.isExpiredByTime;
+      if (!payloadMatchesSession) {
+        _showResultDialog(_ScanResult.invalid);
+        return;
+      }
+
+      final existing = db.getAttendanceForStudentSession(
+        widget.student.id,
+        session.id,
+      );
+      if (existing != null) {
+        _showResultDialog(_ScanResult.duplicate);
+        return;
+      }
+
+      setState(() => _isSaving = true);
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+
+      final record = db.recordAttendance(
+        studentId: widget.student.id,
+        sessionId: session.id,
+      );
+      setState(() {
+        _todayRecord = record;
+        _isSaving = false;
+      });
+      _showResultDialog(_ScanResult.success, record: record);
+    } on StateError catch (error) {
+      debugPrint('Attendance validation changed during scan: $error');
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      final duplicate = db.getAttendanceForStudentSession(
+            widget.student.id,
+            processedSessionId ?? '',
+          ) !=
+          null;
+      _showResultDialog(
+        duplicate ? _ScanResult.duplicate : _ScanResult.noSession,
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Unable to process QR scan: $error\n$stackTrace');
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      _showResultDialog(_ScanResult.processingError);
     }
-
-    // Validate session is active in DB
-    final session = db.validateSession(payload.sessionId);
-    if (session == null) {
-      _showResultDialog(_ScanResult.noSession);
-      return;
-    }
-
-    // Check for duplicate attendance
-    final existing = db.getAttendanceForStudentSession(
-      widget.student.id,
-      session.id,
-    );
-    if (existing != null) {
-      _showResultDialog(_ScanResult.duplicate);
-      return;
-    }
-
-    // Record attendance
-    setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    if (!mounted) return;
-    final record = db.recordAttendance(
-      studentId: widget.student.id,
-      sessionId: session.id,
-    );
-
-    setState(() {
-      _todayRecord = record;
-      _isSaving = false;
-    });
-
-    _showResultDialog(_ScanResult.success, record: record);
   }
 
   void _showResultDialog(_ScanResult result, {AttendanceRecord? record}) {
@@ -167,6 +190,12 @@ class _ScanTabState extends State<ScanTab> {
         icon = Icons.error_outline;
         iconColor = AppColors.error;
         break;
+      case _ScanResult.processingError:
+        title = 'Unable to Record Attendance';
+        message = 'Something went wrong while processing the QR code. Please try again.';
+        icon = Icons.sync_problem_outlined;
+        iconColor = AppColors.error;
+        break;
     }
 
     showDialog(
@@ -189,24 +218,19 @@ class _ScanTabState extends State<ScanTab> {
   @override
   Widget build(BuildContext context) {
     final db = context.watch<MockDatabaseService>();
-    final hasActiveSession = db.activeSession != null;
+    final activeSession = db.activeSession;
+    final hasActiveSession = activeSession != null;
+    final activeSessionRecord = activeSession == null
+        ? null
+        : db.getAttendanceForStudentSession(
+            widget.student.id,
+            activeSession.id,
+          );
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const AppLogo(size: 28, showSubtitle: false),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_outlined),
-            tooltip: 'Sign out',
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove('saved_student_id');
-              if (!context.mounted) return;
-              Navigator.pushReplacementNamed(context, '/role-selection');
-            },
-          ),
-        ],
       ),
       body: _isSaving
           ? const Center(
@@ -281,19 +305,21 @@ class _ScanTabState extends State<ScanTab> {
                       ),
                       const SizedBox(height: 24),
                     ],
-                    if (_todayRecord == null) ...[
+                    if (hasActiveSession) ...[
                       PrimaryButton(
-                        label: 'SCAN QR CODE',
+                        label: activeSessionRecord == null
+                            ? 'SCAN QR CODE'
+                            : 'SCAN AGAIN',
                         icon: Icons.qr_code_scanner,
                         isLoading: _isScanning,
-                        onPressed: hasActiveSession ? _openScanner : null,
+                        onPressed: _openScanner,
                       ),
                       const SizedBox(height: 12),
                       Center(
                         child: Text(
-                          hasActiveSession
+                          activeSessionRecord == null
                               ? 'Point your camera at the teacher\'s QR code'
-                              : 'Scanning is disabled — no active session',
+                              : 'Scanning this session again will be rejected as a duplicate',
                           style: AppTextStyles.bodySmall,
                           textAlign: TextAlign.center,
                         ),
@@ -403,16 +429,29 @@ class _QrScannerSheetState extends State<_QrScannerSheet>
   }
 
   void _toggleTorch() async {
-    await _controller?.toggleTorch();
-    setState(() => _torchOn = !_torchOn);
+    final controller = _controller;
+    if (controller == null) return;
+    try {
+      await controller.toggleTorch();
+      if (mounted) setState(() => _torchOn = !_torchOn);
+    } catch (error) {
+      debugPrint('Unable to toggle scanner torch: $error');
+    }
   }
 
   void _switchCamera() async {
-    await _controller?.switchCamera();
+    final controller = _controller;
+    if (controller == null) return;
+    try {
+      await controller.switchCamera();
+    } catch (error) {
+      debugPrint('Unable to switch scanner camera: $error');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final controller = _controller;
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: const BoxDecoration(
@@ -500,12 +539,14 @@ class _QrScannerSheetState extends State<_QrScannerSheet>
                       ),
                     ),
                   )
-                : ClipRRect(
+                : controller == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : ClipRRect(
                     child: Stack(
                       children: [
                         // Scanner widget
                         MobileScanner(
-                          controller: _controller!,
+                          controller: controller,
                           onDetect: _onDetect,
                           errorBuilder: (context, error, child) {
                             // Handle camera errors gracefully
@@ -513,8 +554,10 @@ class _QrScannerSheetState extends State<_QrScannerSheet>
                                 .addPostFrameCallback((_) {
                               if (mounted) {
                                 setState(() {
-                                  _errorMessage =
-                                      'Camera error: ${error.errorDetails?.message ?? error.errorCode.name}.\n\nPlease close and try again.';
+                                  _errorMessage = error.errorCode ==
+                                          MobileScannerErrorCode.permissionDenied
+                                      ? 'Camera permission was denied. Allow camera access in Android Settings, then retry.'
+                                      : 'Camera error: ${error.errorDetails?.message ?? error.errorCode.name}.\n\nPlease close and try again.';
                                 });
                               }
                             });

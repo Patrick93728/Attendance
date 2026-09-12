@@ -25,6 +25,10 @@ flutter run
 ```
 
 All mutations are held in memory and reset when the process restarts. QR image
-export is intentionally isolated behind `QrExportService`; the current
-prototype reports that device saving is not yet available instead of claiming
-that a file was written.
+export captures the rendered QR card, writes a temporary PNG with
+`path_provider`, and saves it to the public ATTENDLY gallery album.
+
+Student identity is remembered permanently for the device and the student UI
+has no logout action. Resetting that binding requires clearing the app's data or
+reinstalling it. Teachers can opt into **Remember me** and can always sign out;
+teacher logout clears only the saved teacher session.

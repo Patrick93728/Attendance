@@ -15,8 +15,13 @@ import '../../widgets/empty_state.dart';
 /// Teacher QR Generator Tab — generates, displays, and manages attendance sessions.
 class QrGeneratorTab extends StatefulWidget {
   final Teacher teacher;
+  final VoidCallback onLogout;
 
-  const QrGeneratorTab({super.key, required this.teacher});
+  const QrGeneratorTab({
+    super.key,
+    required this.teacher,
+    required this.onLogout,
+  });
 
   @override
   State<QrGeneratorTab> createState() => _QrGeneratorTabState();
@@ -27,6 +32,7 @@ class _QrGeneratorTabState extends State<QrGeneratorTab> {
   bool _isEnding = false;
   bool _isSaving = false;
   final _qrExportService = const QrExportService();
+  final _qrBoundaryKey = GlobalKey();
 
   Future<void> _generateQr() async {
     // If active session exists, confirm replacement
@@ -83,9 +89,9 @@ class _QrGeneratorTabState extends State<QrGeneratorTab> {
     );
   }
 
-  Future<void> _saveQr(AttendanceSession session) async {
+  Future<void> _saveQr() async {
     setState(() => _isSaving = true);
-    final result = await _qrExportService.saveQrImage(session.toQrPayload());
+    final result = await _qrExportService.saveQrImage(_qrBoundaryKey);
     if (!mounted) return;
     setState(() => _isSaving = false);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -108,8 +114,7 @@ class _QrGeneratorTabState extends State<QrGeneratorTab> {
           IconButton(
             icon: const Icon(Icons.logout_outlined),
             tooltip: 'Sign out',
-            onPressed: () =>
-                Navigator.pushReplacementNamed(context, '/role-selection'),
+            onPressed: widget.onLogout,
           ),
         ],
       ),
@@ -135,7 +140,10 @@ class _QrGeneratorTabState extends State<QrGeneratorTab> {
 
             // QR display or empty state
             if (session != null) ...[
-              QrDisplayCard(qrData: session.toQrPayload()),
+              RepaintBoundary(
+                key: _qrBoundaryKey,
+                child: QrDisplayCard(qrData: session.toQrPayload()),
+              ),
               const SizedBox(height: 12),
               // Expiry info
               Row(
@@ -179,7 +187,7 @@ class _QrGeneratorTabState extends State<QrGeneratorTab> {
                 label: 'SAVE QR',
                 icon: Icons.download_outlined,
                 isLoading: _isSaving,
-                onPressed: () => _saveQr(session),
+                onPressed: _saveQr,
               ),
               const SizedBox(height: 12),
               SecondaryButton(

@@ -12,8 +12,13 @@ import 'add_edit_student_screen.dart';
 /// Teacher Students Tab — list with add, edit, delete.
 class StudentsTab extends StatelessWidget {
   final Teacher teacher;
+  final VoidCallback onLogout;
 
-  const StudentsTab({super.key, required this.teacher});
+  const StudentsTab({
+    super.key,
+    required this.teacher,
+    required this.onLogout,
+  });
 
   Future<void> _deleteStudent(
     BuildContext context,
@@ -70,8 +75,7 @@ class StudentsTab extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout_outlined),
             tooltip: 'Sign out',
-            onPressed: () =>
-                Navigator.pushReplacementNamed(context, '/role-selection'),
+            onPressed: onLogout,
           ),
         ],
       ),

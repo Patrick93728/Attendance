@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/student.dart';
 import '../../models/attendance_record.dart';
 import '../../services/mock_database_service.dart';
@@ -40,18 +39,6 @@ class _RecordsTabState extends State<RecordsTab> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('My Records'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_outlined),
-            tooltip: 'Sign out',
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove('saved_student_id');
-              if (!context.mounted) return;
-              Navigator.pushReplacementNamed(context, '/role-selection');
-            },
-          ),
-        ],
       ),
       body: Column(
         children: [
