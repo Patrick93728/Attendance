@@ -1,0 +1,9 @@
+[
+  {
+    "id": "TCH-001",
+    "name": "Teacher Demo",
+    "email": "teacher@itendly.app",
+    "password": "teacher123",
+    "active": true
+  }
+]

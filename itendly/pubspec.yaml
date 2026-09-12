@@ -1,0 +1,37 @@
+name: itendly
+description: ITENDLY Smart Attendance System — A modern Flutter attendance app for Android.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # QR Code Generation
+  qr_flutter: ^4.1.0
+
+  # QR Code Scanning via device camera
+  mobile_scanner: ^5.2.3
+
+  # State management
+  provider: ^6.1.2
+
+  # Date/time formatting
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/data/mock/students.json
+    - assets/data/mock/teachers.json
+    - assets/data/mock/sessions.json
+    - assets/data/mock/attendance.json

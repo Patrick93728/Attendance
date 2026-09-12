@@ -1,0 +1,72 @@
+[
+  {
+    "id": "STU-001",
+    "surname": "MANGANTI",
+    "firstname": "ARDY",
+    "middlename": "TUAZON",
+    "active": true
+  },
+  {
+    "id": "STU-002",
+    "surname": "DELA CRUZ",
+    "firstname": "JUAN",
+    "middlename": "SANTOS",
+    "active": true
+  },
+  {
+    "id": "STU-003",
+    "surname": "REYES",
+    "firstname": "MARIA",
+    "middlename": "GARCIA",
+    "active": true
+  },
+  {
+    "id": "STU-004",
+    "surname": "SANTOS",
+    "firstname": "PEDRO",
+    "middlename": "MENDOZA",
+    "active": true
+  },
+  {
+    "id": "STU-005",
+    "surname": "GARCIA",
+    "firstname": "ANA",
+    "middlename": "REYES",
+    "active": true
+  },
+  {
+    "id": "STU-006",
+    "surname": "MENDOZA",
+    "firstname": "CARLOS",
+    "middlename": "DELA CRUZ",
+    "active": true
+  },
+  {
+    "id": "STU-007",
+    "surname": "FLORES",
+    "firstname": "ROSA",
+    "middlename": "AGUILAR",
+    "active": true
+  },
+  {
+    "id": "STU-008",
+    "surname": "AGUILAR",
+    "firstname": "JOSE",
+    "middlename": "FLORES",
+    "active": true
+  },
+  {
+    "id": "STU-009",
+    "surname": "BAUTISTA",
+    "firstname": "ELENA",
+    "middlename": "RAMOS",
+    "active": true
+  },
+  {
+    "id": "STU-010",
+    "surname": "RAMOS",
+    "firstname": "MIGUEL",
+    "middlename": "BAUTISTA",
+    "active": true
+  }
+]

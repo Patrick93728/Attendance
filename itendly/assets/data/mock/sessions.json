@@ -1,0 +1,65 @@
+[
+  {
+    "id": "SESSION-20260901-001",
+    "teacherId": "TCH-001",
+    "createdAt": "2026-09-01T07:55:00",
+    "expiresAt": "2026-09-01T10:00:00",
+    "status": "ended"
+  },
+  {
+    "id": "SESSION-20260902-001",
+    "teacherId": "TCH-001",
+    "createdAt": "2026-09-02T07:58:00",
+    "expiresAt": "2026-09-02T10:00:00",
+    "status": "ended"
+  },
+  {
+    "id": "SESSION-20260903-001",
+    "teacherId": "TCH-001",
+    "createdAt": "2026-09-03T07:56:00",
+    "expiresAt": "2026-09-03T10:00:00",
+    "status": "ended"
+  },
+  {
+    "id": "SESSION-20260904-001",
+    "teacherId": "TCH-001",
+    "createdAt": "2026-09-04T07:54:00",
+    "expiresAt": "2026-09-04T10:00:00",
+    "status": "ended"
+  },
+  {
+    "id": "SESSION-20260905-001",
+    "teacherId": "TCH-001",
+    "createdAt": "2026-09-05T07:59:00",
+    "expiresAt": "2026-09-05T10:00:00",
+    "status": "ended"
+  },
+  {
+    "id": "SESSION-20260908-001",
+    "teacherId": "TCH-001",
+    "createdAt": "2026-09-08T07:57:00",
+    "expiresAt": "2026-09-08T10:00:00",
+    "status": "ended"
+  },
+  {
+    "id": "SESSION-20260909-001",
+    "teacherId": "TCH-001",
+    "createdAt": "2026-09-09T07:53:00",
+    "expiresAt": "2026-09-09T10:00:00",
+    "status": "ended"
+  },
+  {
+    "id": "SESSION-20260910-001",
+    "teacherId": "TCH-001",
+    "createdAt": "2026-09-10T07:55:00",
+    "expiresAt": "2026-09-10T10:00:00",
+    "status": "ended"
+  },
+  {
+    "id": "SESSION-20260911-001",
+    "teacherId": "TCH-001",
+    "createdAt": "2026-09-11T07:58:00",
+    "expiresAt": "2026-09-11T10:00:00",
+    "status": "ended"
+  }
+]
