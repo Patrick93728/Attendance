@@ -478,7 +478,7 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
                   MobileScanner(
                     controller: _controller,
                     onDetect: _onDetect,
-                    errorBuilder: (context, error) => _ScannerErrorState(
+                    errorBuilder: (context, error, child) => _ScannerErrorState(
                       isPermissionDenied: error.errorCode ==
                           MobileScannerErrorCode.permissionDenied,
                     ),
