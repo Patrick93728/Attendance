@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/student.dart';
 import '../../models/attendance_record.dart';
@@ -83,7 +84,9 @@ class _ScanTabState extends State<ScanTab> {
           setState(() => _isScanning = false);
         },
       ),
-    ).whenComplete(() => setState(() => _isScanning = false));
+    ).whenComplete(() {
+      if (mounted) setState(() => _isScanning = false);
+    });
   }
 
   Future<void> _processScan(String rawValue) async {
@@ -102,15 +105,6 @@ class _ScanTabState extends State<ScanTab> {
       _showResultDialog(_ScanResult.noSession);
       return;
     }
-    final payloadMatchesSession =
-        payload.teacherId == session.teacherId &&
-        payload.createdAt.isAtSameMomentAs(session.createdAt) &&
-        payload.expiresAt.isAtSameMomentAs(session.expiresAt) &&
-        !payload.isExpiredByTime;
-    if (!payloadMatchesSession) {
-      _showResultDialog(_ScanResult.invalid);
-      return;
-    }
 
     // Check for duplicate attendance
     final existing = db.getAttendanceForStudentSession(
@@ -127,24 +121,10 @@ class _ScanTabState extends State<ScanTab> {
     await Future.delayed(const Duration(milliseconds: 500));
 
     if (!mounted) return;
-    AttendanceRecord record;
-    try {
-      record = db.recordAttendance(
-        studentId: widget.student.id,
-        sessionId: session.id,
-      );
-    } on StateError {
-      setState(() => _isSaving = false);
-      final duplicate = db.getAttendanceForStudentSession(
-            widget.student.id,
-            session.id,
-          ) !=
-          null;
-      _showResultDialog(
-        duplicate ? _ScanResult.duplicate : _ScanResult.noSession,
-      );
-      return;
-    }
+    final record = db.recordAttendance(
+      studentId: widget.student.id,
+      sessionId: session.id,
+    );
 
     setState(() {
       _todayRecord = record;
@@ -165,28 +145,25 @@ class _ScanTabState extends State<ScanTab> {
         final time = record?.timeIn != null
             ? DateFormat('h:mm a').format(record!.timeIn!)
             : '';
-        message =
-            '${widget.student.displayName}\nPresent\nToday • $time';
+        message = '${widget.student.displayName}\nPresent\nToday • $time';
         icon = Icons.check_circle;
         iconColor = AppColors.successAccent;
         break;
       case _ScanResult.duplicate:
         title = 'Already Recorded';
-        message =
-            'Your attendance for this session has already been recorded.';
+        message = 'Your attendance for this session has already been recorded.';
         icon = Icons.info_outline;
         iconColor = AppColors.primaryLight;
         break;
       case _ScanResult.noSession:
-        title = 'Invalid QR Code';
+        title = 'Session Expired';
         message = 'This class session is no longer active or has expired.';
         icon = Icons.qr_code;
         iconColor = AppColors.error;
         break;
       case _ScanResult.invalid:
         title = 'Invalid QR Code';
-        message =
-            'This QR code is not a valid ITENDLY attendance code.';
+        message = 'This QR code is not a valid ATTENDLY attendance code.';
         icon = Icons.error_outline;
         iconColor = AppColors.error;
         break;
@@ -211,16 +188,8 @@ class _ScanTabState extends State<ScanTab> {
 
   @override
   Widget build(BuildContext context) {
-    // Listen for DB changes (e.g., session created/ended)
     final db = context.watch<MockDatabaseService>();
-    final activeSession = db.activeSession;
-    final hasActiveSession = activeSession != null;
-    final activeSessionRecord = activeSession == null
-        ? null
-        : db.getAttendanceForStudentSession(
-            widget.student.id,
-            activeSession.id,
-          );
+    final hasActiveSession = db.activeSession != null;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -230,10 +199,12 @@ class _ScanTabState extends State<ScanTab> {
           IconButton(
             icon: const Icon(Icons.logout_outlined),
             tooltip: 'Sign out',
-            onPressed: () => Navigator.pushReplacementNamed(
-              context,
-              '/role-selection',
-            ),
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('saved_student_id');
+              if (!context.mounted) return;
+              Navigator.pushReplacementNamed(context, '/role-selection');
+            },
           ),
         ],
       ),
@@ -257,8 +228,6 @@ class _ScanTabState extends State<ScanTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 8),
-
-                    // Greeting
                     Text(
                       '${_greeting()},',
                       style: AppTextStyles.bodyLarge.copyWith(
@@ -269,10 +238,7 @@ class _ScanTabState extends State<ScanTab> {
                       '${widget.student.firstname}!',
                       style: AppTextStyles.headlineLarge,
                     ),
-
                     const SizedBox(height: 24),
-
-                    // Attendance status card
                     AttendanceStatusCard(
                       status: _statusType,
                       studentName: widget.student.displayName,
@@ -283,85 +249,71 @@ class _ScanTabState extends State<ScanTab> {
                           ? 'Scan the class QR code to mark your attendance'
                           : 'There is no active session right now',
                     ),
-
                     const SizedBox(height: 24),
-
-                    // Active session or no session state
-                    if (!hasActiveSession && _todayRecord == null) ...
-                      [
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(AppSpacing.lg),
-                          decoration: BoxDecoration(
-                            color: AppColors.warningBg,
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.large),
-                            border: Border.all(
-                                color: AppColors.warning.withValues(alpha: 0.3)),
-                          ),
-                          child: Column(
-                            children: [
-                              const Icon(Icons.wifi_off_outlined,
-                                  size: 36, color: AppColors.warning),
-                              const SizedBox(height: 12),
-                              Text(
-                                'No Active Class',
-                                style: AppTextStyles.titleMedium
-                                    .copyWith(color: AppColors.warning),
-                              ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                'There is currently no active attendance session. Ask your teacher to generate a QR code.',
-                                style: AppTextStyles.bodySmall,
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
+                    if (!hasActiveSession && _todayRecord == null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        decoration: BoxDecoration(
+                          color: AppColors.warningBg,
+                          borderRadius: BorderRadius.circular(AppRadius.large),
+                          border: Border.all(
+                              color: AppColors.warning.withValues(alpha: 0.3)),
                         ),
-                        const SizedBox(height: 24),
-                      ],
-
-                    // Keep scanning available so duplicate scans receive clear
-                    // feedback and a newly generated session can be attended.
-                    if (hasActiveSession) ...
-                      [
-                        PrimaryButton(
-                          label: activeSessionRecord == null
-                              ? 'SCAN QR CODE'
-                              : 'SCAN AGAIN',
-                          icon: Icons.qr_code_scanner,
-                          isLoading: _isScanning,
-                          onPressed: _openScanner,
+                        child: Column(
+                          children: [
+                            const Icon(Icons.wifi_off_outlined,
+                                size: 36, color: AppColors.warning),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No Active Class',
+                              style: AppTextStyles.titleMedium
+                                  .copyWith(color: AppColors.warning),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'There is currently no active attendance session. Ask your teacher to generate a QR code.',
+                              style: AppTextStyles.bodySmall,
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
-                        Center(
-                          child: Text(
-                            activeSessionRecord == null
-                                ? 'Point your camera at the teacher\'s QR code'
-                                : 'Scanning this session again will be rejected as a duplicate',
-                            style: AppTextStyles.bodySmall,
-                            textAlign: TextAlign.center,
-                          ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                    if (_todayRecord == null) ...[
+                      PrimaryButton(
+                        label: 'SCAN QR CODE',
+                        icon: Icons.qr_code_scanner,
+                        isLoading: _isScanning,
+                        onPressed: hasActiveSession ? _openScanner : null,
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Text(
+                          hasActiveSession
+                              ? 'Point your camera at the teacher\'s QR code'
+                              : 'Scanning is disabled — no active session',
+                          style: AppTextStyles.bodySmall,
+                          textAlign: TextAlign.center,
                         ),
-                      ],
-
-                    if (_todayRecord != null) ...
-                      [
-                        const Center(
-                          child: Column(
-                            children: [
-                              Icon(Icons.verified,
-                                  color: AppColors.successAccent, size: 64),
-                              SizedBox(height: 8),
-                              Text(
-                                'You\'re all set for today!',
-                                style: AppTextStyles.bodyMedium,
-                              ),
-                            ],
-                          ),
+                      ),
+                    ],
+                    if (_todayRecord != null) ...[
+                      const Center(
+                        child: Column(
+                          children: [
+                            Icon(Icons.verified,
+                                color: AppColors.successAccent, size: 64),
+                            SizedBox(height: 8),
+                            Text(
+                              'You\'re all set for today!',
+                              style: AppTextStyles.bodyMedium,
+                            ),
+                          ],
                         ),
-                      ],
-
+                      ),
+                    ],
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -371,9 +323,9 @@ class _ScanTabState extends State<ScanTab> {
   }
 }
 
-// ─────────────────────────────────────────────
-// QR Scanner Bottom Sheet
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// QR Scanner Bottom Sheet — fixed for mobile_scanner v5
+// ─────────────────────────────────────────────────────────────
 
 class _QrScannerSheet extends StatefulWidget {
   final ValueChanged<String> onScan;
@@ -388,48 +340,88 @@ class _QrScannerSheet extends StatefulWidget {
   State<_QrScannerSheet> createState() => _QrScannerSheetState();
 }
 
-class _QrScannerSheetState extends State<_QrScannerSheet> {
-  late final MobileScannerController _controller;
+class _QrScannerSheetState extends State<_QrScannerSheet>
+    with WidgetsBindingObserver {
+  MobileScannerController? _controller;
   bool _scanned = false;
+  bool _torchOn = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startScanner();
+  }
+
+  void _startScanner() {
     _controller = MobileScannerController(
-      formats: const [BarcodeFormat.qrCode],
-      detectionSpeed: DetectionSpeed.noDuplicates,
+      // v5: autoStart defaults to true; use these args
+      detectionSpeed: DetectionSpeed.normal,
+      facing: CameraFacing.back,
+      torchEnabled: false,
       returnImage: false,
     );
+    setState(() {
+      _errorMessage = null;
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_controller == null) return;
+    try {
+      if (state == AppLifecycleState.paused) {
+        _controller?.stop();
+      } else if (state == AppLifecycleState.resumed) {
+        _controller?.start();
+      }
+    } catch (e) {
+      debugPrint('Scanner lifecycle error: $e');
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    try {
+      _controller?.dispose();
+    } catch (_) {}
     super.dispose();
   }
 
   void _onDetect(BarcodeCapture capture) {
     if (_scanned) return;
-    final barcode = capture.barcodes.firstOrNull;
-    final rawValue = barcode?.rawValue;
+    final rawValue = capture.barcodes.firstOrNull?.rawValue;
     if (rawValue != null && rawValue.isNotEmpty) {
       _scanned = true;
-      _controller.stop();
+      try {
+        _controller?.stop();
+      } catch (_) {}
       widget.onScan(rawValue);
     }
+  }
+
+  void _toggleTorch() async {
+    await _controller?.toggleTorch();
+    setState(() => _torchOn = !_torchOn);
+  }
+
+  void _switchCamera() async {
+    await _controller?.switchCamera();
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.80,
+      height: MediaQuery.of(context).size.height * 0.85,
       decoration: const BoxDecoration(
         color: Colors.black,
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
       ),
       child: Column(
         children: [
-          // Handle
+          // Drag handle
           Padding(
             padding: const EdgeInsets.only(top: 12, bottom: 8),
             child: Container(
@@ -442,13 +434,20 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
             ),
           ),
 
-          // Header row
+          // Header
           Padding(
             padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md, vertical: 4),
             child: Row(
               children: [
-                const SizedBox(width: 48),
+                IconButton(
+                  icon: Icon(
+                    _torchOn ? Icons.flash_on : Icons.flash_off,
+                    color: _torchOn ? Colors.yellow : Colors.white,
+                  ),
+                  onPressed: _toggleTorch,
+                  tooltip: 'Toggle flash',
+                ),
                 const Expanded(
                   child: Text(
                     'Scan QR Code',
@@ -470,47 +469,95 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
 
           // Camera preview
           Expanded(
-            child: ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(0)),
-              child: Stack(
-                children: [
-                  MobileScanner(
-                    controller: _controller,
-                    onDetect: _onDetect,
-                    errorBuilder: (context, error, child) => _ScannerErrorState(
-                      isPermissionDenied: error.errorCode ==
-                          MobileScannerErrorCode.permissionDenied,
-                    ),
-                  ),
-                  // Overlay frame
-                  Center(
-                    child: Container(
-                      width: 240,
-                      height: 240,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: AppColors.primaryLight,
-                          width: 2.5,
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(AppRadius.large),
+            child: _errorMessage != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.camera_alt_outlined,
+                              color: Colors.white54, size: 60),
+                          const SizedBox(height: 16),
+                          Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 14),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _scanned = false;
+                                _errorMessage = null;
+                              });
+                              _startScanner();
+                            },
+                            child: const Text('Retry'),
+                          ),
+                        ],
                       ),
                     ),
+                  )
+                : ClipRRect(
+                    child: Stack(
+                      children: [
+                        // Scanner widget
+                        MobileScanner(
+                          controller: _controller!,
+                          onDetect: _onDetect,
+                          errorBuilder: (context, error, child) {
+                            // Handle camera errors gracefully
+                            WidgetsBinding.instance
+                                .addPostFrameCallback((_) {
+                              if (mounted) {
+                                setState(() {
+                                  _errorMessage =
+                                      'Camera error: ${error.errorDetails?.message ?? error.errorCode.name}.\n\nPlease close and try again.';
+                                });
+                              }
+                            });
+                            return const SizedBox.expand(
+                              child: ColoredBox(color: Colors.black),
+                            );
+                          },
+                        ),
+
+                        // Dimmed overlay with square cutout
+                        IgnorePointer(
+                          child: CustomPaint(
+                            painter: _ScanOverlayPainter(),
+                            child: const SizedBox.expand(),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            ),
           ),
 
-          // Instructions
+          // Instructions + flip camera
           Padding(
             padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg, vertical: 20),
-            child: Text(
-              'Point your camera at the teacher\'s QR code',
-              style: AppTextStyles.bodyMedium.copyWith(color: Colors.white70),
-              textAlign: TextAlign.center,
+                horizontal: AppSpacing.lg, vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Point at the teacher\'s QR code',
+                    style:
+                        TextStyle(color: Colors.white70, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.flip_camera_android,
+                      color: Colors.white54),
+                  onPressed: _switchCamera,
+                  tooltip: 'Flip camera',
+                ),
+              ],
             ),
           ),
         ],
@@ -519,43 +566,59 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
   }
 }
 
-class _ScannerErrorState extends StatelessWidget {
-  final bool isPermissionDenied;
+/// Paints a semi-transparent overlay with a clear square in the center.
+class _ScanOverlayPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const squareSize = 240.0;
+    final squareLeft = (size.width - squareSize) / 2;
+    final squareTop = (size.height - squareSize) / 2;
+    final squareRect =
+        Rect.fromLTWH(squareLeft, squareTop, squareSize, squareSize);
 
-  const _ScannerErrorState({required this.isPermissionDenied});
+    // Dim everything except the square
+    final overlayPaint = Paint()..color = Colors.black.withValues(alpha: 0.5);
+    final fullRect = Rect.fromLTWH(0, 0, size.width, size.height);
+    canvas.drawPath(
+      Path.combine(
+        PathOperation.difference,
+        Path()..addRect(fullRect),
+        Path()
+          ..addRRect(
+              RRect.fromRectAndRadius(squareRect, const Radius.circular(12))),
+      ),
+      overlayPaint,
+    );
+
+    // Corner guides
+    const cornerLen = 28.0;
+    const cornerThick = 3.5;
+    final cornerPaint = Paint()
+      ..color = const Color(0xFF5B9BD5)
+      ..strokeWidth = cornerThick
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final corners = [
+      // TL
+      [squareRect.topLeft, squareRect.topLeft + const Offset(cornerLen, 0)],
+      [squareRect.topLeft, squareRect.topLeft + const Offset(0, cornerLen)],
+      // TR
+      [squareRect.topRight, squareRect.topRight + const Offset(-cornerLen, 0)],
+      [squareRect.topRight, squareRect.topRight + const Offset(0, cornerLen)],
+      // BL
+      [squareRect.bottomLeft, squareRect.bottomLeft + const Offset(cornerLen, 0)],
+      [squareRect.bottomLeft, squareRect.bottomLeft + const Offset(0, -cornerLen)],
+      // BR
+      [squareRect.bottomRight, squareRect.bottomRight + const Offset(-cornerLen, 0)],
+      [squareRect.bottomRight, squareRect.bottomRight + const Offset(0, -cornerLen)],
+    ];
+
+    for (final line in corners) {
+      canvas.drawLine(line[0], line[1], cornerPaint);
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: Colors.black,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.no_photography_outlined,
-                  color: Colors.white, size: 52),
-              const SizedBox(height: 16),
-              Text(
-                isPermissionDenied
-                    ? 'Camera Permission Denied'
-                    : 'Scanner Unavailable',
-                style: AppTextStyles.titleMedium.copyWith(color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                isPermissionDenied
-                    ? 'Allow camera access in Android settings, then try again.'
-                    : 'The camera could not be started. Close the scanner and try again.',
-                style: AppTextStyles.bodySmall.copyWith(color: Colors.white70),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  bool shouldRepaint(_ScanOverlayPainter old) => false;
 }

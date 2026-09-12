@@ -55,14 +55,17 @@ class AttendanceStatusCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               timeIn!,
-              style: AppTextStyles.bodyMedium.copyWith(color: _iconColor.withValues(alpha: 0.8)),
+              style: AppTextStyles.bodyMedium
+                  .copyWith(color: _iconColor.withValues(alpha: 0.8)),
             ),
           ],
-          if (sessionInfo != null && status == AttendanceStatusType.notRecorded) ...[
+          if (sessionInfo != null &&
+              status == AttendanceStatusType.notRecorded) ...[
             const SizedBox(height: 6),
             Text(
               sessionInfo!,
-              style: AppTextStyles.bodySmall.copyWith(color: _iconColor.withValues(alpha: 0.7)),
+              style: AppTextStyles.bodySmall
+                  .copyWith(color: _iconColor.withValues(alpha: 0.7)),
             ),
           ],
         ],

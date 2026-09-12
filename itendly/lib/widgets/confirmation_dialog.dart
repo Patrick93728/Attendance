@@ -67,7 +67,8 @@ class ConfirmationDialog extends StatelessWidget {
               size: 32,
             )
           : null,
-      title: Text(title, style: AppTextStyles.titleLarge, textAlign: TextAlign.center),
+      title: Text(title,
+          style: AppTextStyles.titleLarge, textAlign: TextAlign.center),
       content: Text(
         message,
         style: AppTextStyles.bodyMedium,
@@ -77,12 +78,15 @@ class ConfirmationDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: Text(cancelLabel, style: AppTextStyles.labelLarge.copyWith(color: AppColors.textSecondary)),
+          child: Text(cancelLabel,
+              style: AppTextStyles.labelLarge
+                  .copyWith(color: AppColors.textSecondary)),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(true),
           style: TextButton.styleFrom(foregroundColor: confirmColor),
-          child: Text(confirmLabel, style: AppTextStyles.labelLarge.copyWith(color: confirmColor)),
+          child: Text(confirmLabel,
+              style: AppTextStyles.labelLarge.copyWith(color: confirmColor)),
         ),
       ],
     );

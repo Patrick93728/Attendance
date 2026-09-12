@@ -22,8 +22,7 @@ class AttendanceSession {
   });
 
   /// True only when status == 'active' AND current time is before expiresAt.
-  bool get isActive =>
-      status == 'active' && DateTime.now().isBefore(expiresAt);
+  bool get isActive => status == 'active' && DateTime.now().isBefore(expiresAt);
 
   bool get isEnded => status == 'ended';
 

@@ -122,8 +122,7 @@ class MockDatabaseService extends ChangeNotifier {
     final normalizedId = studentId.trim().toUpperCase();
     return !_students.any(
       (student) =>
-          student.id.toUpperCase() == normalizedId &&
-          student.id != excludingId,
+          student.id.toUpperCase() == normalizedId && student.id != excludingId,
     );
   }
 
@@ -306,9 +305,7 @@ class MockDatabaseService extends ChangeNotifier {
 
   /// Returns a student's full attendance history, sorted newest first.
   List<AttendanceRecord> getStudentAttendanceHistory(String studentId) {
-    return _attendanceRecords
-        .where((r) => r.studentId == studentId)
-        .toList()
+    return _attendanceRecords.where((r) => r.studentId == studentId).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
   }
 

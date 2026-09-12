@@ -1,5 +1,5 @@
-name: itendly
-description: ITENDLY Smart Attendance System — A modern Flutter attendance app for Android.
+name: attendly
+description: ATTENDLY Smart Attendance System — A modern Flutter attendance app for Android.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -22,10 +22,30 @@ dependencies:
   # Date/time formatting
   intl: ^0.19.0
 
+  # Local storage — remember student device login
+  shared_preferences: ^2.2.2
+
+  # File path resolution — QR save to Pictures
+  path_provider: ^2.1.2
+  gal: ^2.3.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+
+  # Launcher icon generator
+  flutter_launcher_icons: ^0.14.1
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/icon.png"
+  web:
+    generate: false
 
 flutter:
   uses-material-design: true
@@ -35,3 +55,4 @@ flutter:
     - assets/data/mock/teachers.json
     - assets/data/mock/sessions.json
     - assets/data/mock/attendance.json
+    - assets/icon/icon.png

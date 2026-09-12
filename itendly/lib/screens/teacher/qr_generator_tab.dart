@@ -134,37 +134,34 @@ class _QrGeneratorTabState extends State<QrGeneratorTab> {
             const SizedBox(height: 20),
 
             // QR display or empty state
-            if (session != null) ...
-              [
-                QrDisplayCard(qrData: session.toQrPayload()),
-                const SizedBox(height: 12),
-                // Expiry info
-                Row(
-                  children: [
-                    const Icon(Icons.timer_outlined,
-                        size: 16, color: AppColors.textTertiary),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Expires: ${DateFormat('h:mm a').format(session.expiresAt)}',
-                      style: AppTextStyles.bodySmall,
-                    ),
-                    const Spacer(),
-                    Text(
-                      'Session ID: ${session.id.split('-').last}',
-                      style: AppTextStyles.caption,
-                    ),
-                  ],
-                ),
-              ]
-            else ...
-              [
-                const EmptyState(
-                  icon: Icons.qr_code_outlined,
-                  title: 'No Active Session',
-                  description:
-                      'Generate a QR code to start an attendance session.\nStudents will scan this QR to mark their presence.',
-                ),
-              ],
+            if (session != null) ...[
+              QrDisplayCard(qrData: session.toQrPayload()),
+              const SizedBox(height: 12),
+              // Expiry info
+              Row(
+                children: [
+                  const Icon(Icons.timer_outlined,
+                      size: 16, color: AppColors.textTertiary),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Expires: ${DateFormat('h:mm a').format(session.expiresAt)}',
+                    style: AppTextStyles.bodySmall,
+                  ),
+                  const Spacer(),
+                  Text(
+                    'Session ID: ${session.id.split('-').last}',
+                    style: AppTextStyles.caption,
+                  ),
+                ],
+              ),
+            ] else ...[
+              const EmptyState(
+                icon: Icons.qr_code_outlined,
+                title: 'No Active Session',
+                description:
+                    'Generate a QR code to start an attendance session.\nStudents will scan this QR to mark their presence.',
+              ),
+            ],
 
             const SizedBox(height: 24),
 
@@ -176,24 +173,23 @@ class _QrGeneratorTabState extends State<QrGeneratorTab> {
               onPressed: _generateQr,
             ),
 
-            if (session != null) ...
-              [
-                const SizedBox(height: 12),
-                SecondaryButton(
-                  label: 'SAVE QR',
-                  icon: Icons.download_outlined,
-                  isLoading: _isSaving,
-                  onPressed: () => _saveQr(session),
-                ),
-                const SizedBox(height: 12),
-                SecondaryButton(
-                  label: 'END SESSION',
-                  icon: Icons.stop_circle_outlined,
-                  color: AppColors.error,
-                  isLoading: _isEnding,
-                  onPressed: () => _endSession(session),
-                ),
-              ],
+            if (session != null) ...[
+              const SizedBox(height: 12),
+              SecondaryButton(
+                label: 'SAVE QR',
+                icon: Icons.download_outlined,
+                isLoading: _isSaving,
+                onPressed: () => _saveQr(session),
+              ),
+              const SizedBox(height: 12),
+              SecondaryButton(
+                label: 'END SESSION',
+                icon: Icons.stop_circle_outlined,
+                color: AppColors.error,
+                isLoading: _isEnding,
+                onPressed: () => _endSession(session),
+              ),
+            ],
 
             const SizedBox(height: 32),
           ],
@@ -231,7 +227,8 @@ class _SessionStatusBadge extends StatelessWidget {
             width: 8,
             height: 8,
             decoration: BoxDecoration(
-              color: isActive ? AppColors.successAccent : AppColors.textTertiary,
+              color:
+                  isActive ? AppColors.successAccent : AppColors.textTertiary,
               shape: BoxShape.circle,
             ),
           ),

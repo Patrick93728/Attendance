@@ -8,7 +8,7 @@ import '../../widgets/custom_text_field.dart';
 
 /// Teacher login screen with email + password.
 ///
-/// Demo credentials: teacher@itendly.app / teacher123
+/// Demo credentials: teacher@ATTENDLY.app / teacher123
 /// PRODUCTION NOTE: Use secure server-side authentication.
 class TeacherLoginScreen extends StatefulWidget {
   const TeacherLoginScreen({super.key});
@@ -59,8 +59,7 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
     if (!mounted) return;
 
     final db = context.read<MockDatabaseService>();
-    final teacher =
-        db.loginTeacher(_emailCtrl.text.trim(), _passwordCtrl.text);
+    final teacher = db.loginTeacher(_emailCtrl.text.trim(), _passwordCtrl.text);
 
     setState(() => _isLoading = false);
     if (!mounted) return;
@@ -73,8 +72,7 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
       );
     } else {
       setState(
-        () => _loginError =
-            'Invalid email or password. Please try again.',
+        () => _loginError = 'Invalid email or password. Please try again.',
       );
     }
   }
@@ -103,42 +101,41 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
               const SizedBox(height: 32),
 
               // Login error
-              if (_loginError != null) ...
-                [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.errorBg,
-                      borderRadius: BorderRadius.circular(AppRadius.medium),
-                      border: Border.all(
-                          color: AppColors.error.withValues(alpha: 0.4)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline,
-                            color: AppColors.error, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _loginError!,
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.error,
-                              fontWeight: FontWeight.w500,
-                            ),
+              if (_loginError != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.errorBg,
+                    borderRadius: BorderRadius.circular(AppRadius.medium),
+                    border: Border.all(
+                        color: AppColors.error.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: AppColors.error, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _loginError!,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                ],
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // Email
               CustomTextField(
                 controller: _emailCtrl,
                 label: 'Email Address',
-                hint: 'teacher@itendly.app',
+                hint: 'teacher@ATTENDLY.app',
                 errorText: _emailError,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
@@ -200,11 +197,11 @@ class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
                   children: [
                     Text(
                       'Demo Credentials',
-                      style: AppTextStyles.labelMedium.copyWith(
-                          color: AppColors.primary),
+                      style: AppTextStyles.labelMedium
+                          .copyWith(color: AppColors.primary),
                     ),
                     const SizedBox(height: 4),
-                    const Text('Email: teacher@itendly.app',
+                    const Text('Email: teacher@ATTENDLY.app',
                         style: AppTextStyles.bodySmall),
                     const Text('Password: teacher123',
                         style: AppTextStyles.bodySmall),

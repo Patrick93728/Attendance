@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/mock_database_service.dart';
 import '../../theme/app_theme.dart';
@@ -33,10 +34,23 @@ class _StartupScreenState extends State<StartupScreen> {
 
     if (db.isLoaded && db.loadError == null && !_navigationScheduled) {
       _navigationScheduled = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/role-selection');
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        
+        final prefs = await SharedPreferences.getInstance();
+        final savedStudentId = prefs.getString('saved_student_id');
+        
+        if (!mounted) return;
+        
+        if (savedStudentId != null) {
+          try {
+            final student = db.students.firstWhere((s) => s.id == savedStudentId);
+            Navigator.pushReplacementNamed(context, '/student/home', arguments: student);
+            return;
+          } catch (_) {}
         }
+        
+        Navigator.pushReplacementNamed(context, '/role-selection');
       });
     }
 

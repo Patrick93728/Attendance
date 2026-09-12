@@ -128,7 +128,8 @@ void main() {
 
       expect(db.updateStudent(original.id, updated), isTrue);
       expect(db.getStudentAttendanceHistory(original.id), isEmpty);
-      expect(db.getStudentAttendanceHistory(updated.id), hasLength(previousCount));
+      expect(
+          db.getStudentAttendanceHistory(updated.id), hasLength(previousCount));
     });
   });
 }

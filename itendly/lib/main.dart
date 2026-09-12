@@ -27,7 +27,7 @@ void main() async {
   runApp(
     ChangeNotifierProvider.value(
       value: db,
-      child: const ItendlyApp(),
+      child: const AttendlyApp(),
     ),
   );
 }

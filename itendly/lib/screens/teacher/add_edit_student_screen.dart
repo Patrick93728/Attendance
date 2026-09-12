@@ -72,8 +72,9 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
           _surnameCtrl.text.trim().isEmpty ? 'Surname is required' : null;
       _firstnameError =
           _firstnameCtrl.text.trim().isEmpty ? 'First name is required' : null;
-      _middlenameError =
-          _middlenameCtrl.text.trim().isEmpty ? 'Middle name is required' : null;
+      _middlenameError = _middlenameCtrl.text.trim().isEmpty
+          ? 'Middle name is required'
+          : null;
       _idError =
           _studentIdCtrl.text.trim().isEmpty ? 'Student ID is required' : null;
     });
@@ -134,8 +135,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: const CloseButton(),
-        title:
-            Text(widget.isEditing ? 'Edit Student' : 'Add Student'),
+        title: Text(widget.isEditing ? 'Edit Student' : 'Add Student'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
